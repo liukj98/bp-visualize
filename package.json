@@ -1,0 +1,1 @@
+{"name":"bp-visualize","private":true,"version":"0.0.0","type":"module","scripts":{"dev":"vite","build":"vite build","preview":"vite preview"},"dependencies":{"katex":"^0.16.33","vite":"^7.3.1"}}
