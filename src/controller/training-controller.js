@@ -1,5 +1,5 @@
 import { createDefaultNetwork, DEFAULT_INPUTS, DEFAULT_TARGETS } from '../model/neural-network.js';
-import { TrainingState } from '../model/training-state.js';
+import { TrainingState, SUB_PHASES, MAJOR_PHASES } from '../model/training-state.js';
 import { eventBus } from './event-bus.js';
 
 export class TrainingController {
@@ -11,27 +11,43 @@ export class TrainingController {
     this.animDuration = 800;
   }
 
-  stepForward() {
-    this.state.setPhase('forward');
-    const output = this.network.forward(this.inputs);
-    eventBus.emit('phase:forward', { output, network: this.network, state: this.state });
-    return output;
+  // --- Sub-step methods ---
+
+  stepForwardHidden() {
+    this.state.setPhase('forward-hidden');
+    this.network.forwardHidden(this.inputs);
+    eventBus.emit('phase:forward-hidden', { network: this.network, state: this.state });
   }
 
-  stepLoss() {
-    this.state.setPhase('loss');
+  stepForwardOutput() {
+    this.state.setPhase('forward-output');
+    this.network.forwardOutput();
+    eventBus.emit('phase:forward-output', { network: this.network, state: this.state });
+  }
+
+  stepLossPerOutput() {
+    this.state.setPhase('loss-per-output');
     const { totalLoss, perOutput } = this.network.computeLoss(this.targets);
     this.state.currentLoss = totalLoss;
     this.state.currentPerOutputLoss = perOutput;
-    eventBus.emit('phase:loss', { totalLoss, perOutput, network: this.network, state: this.state });
-    return { totalLoss, perOutput };
+    eventBus.emit('phase:loss-per-output', { totalLoss, perOutput, network: this.network, state: this.state });
   }
 
-  stepBackward() {
-    this.state.setPhase('backward');
-    const result = this.network.backward(this.targets);
-    eventBus.emit('phase:backward', { ...result, network: this.network, state: this.state });
-    return result;
+  stepLossTotal() {
+    this.state.setPhase('loss-total');
+    eventBus.emit('phase:loss-total', { network: this.network, state: this.state });
+  }
+
+  stepBackwardOutput() {
+    this.state.setPhase('backward-output');
+    this.network.backwardOutput(this.targets);
+    eventBus.emit('phase:backward-output', { network: this.network, state: this.state });
+  }
+
+  stepBackwardHidden() {
+    this.state.setPhase('backward-hidden');
+    this.network.backwardHidden();
+    eventBus.emit('phase:backward-hidden', { network: this.network, state: this.state });
   }
 
   stepUpdate() {
@@ -45,15 +61,22 @@ export class TrainingController {
     return oldWeights;
   }
 
+  /** Execute the next sub-step based on current phase */
   nextStep() {
     switch (this.state.phase) {
       case 'idle':
-        return this.stepForward();
-      case 'forward':
-        return this.stepLoss();
-      case 'loss':
-        return this.stepBackward();
-      case 'backward':
+        return this.stepForwardHidden();
+      case 'forward-hidden':
+        return this.stepForwardOutput();
+      case 'forward-output':
+        return this.stepLossPerOutput();
+      case 'loss-per-output':
+        return this.stepLossTotal();
+      case 'loss-total':
+        return this.stepBackwardOutput();
+      case 'backward-output':
+        return this.stepBackwardHidden();
+      case 'backward-hidden':
         return this.stepUpdate();
       case 'update':
         this.state.setPhase('idle');
@@ -62,11 +85,56 @@ export class TrainingController {
     }
   }
 
+  /** Skip remaining sub-steps of current major phase */
+  skipToNextMajorPhase() {
+    const currentMajor = MAJOR_PHASES[this.state.phase];
+    // Execute remaining sub-steps of this major phase silently
+    while (MAJOR_PHASES[this.state.phase] === currentMajor && this.state.phase !== 'idle') {
+      this.nextStep();
+    }
+    // If we ended at idle, the step already completed
+    return this.state.phase;
+  }
+
+  /** Legacy: full forward + loss + backward + update */
+  stepForward() {
+    this.state.setPhase('forward-hidden');
+    this.network.forwardHidden(this.inputs);
+    this.state.setPhase('forward-output');
+    this.network.forwardOutput();
+    this.state.setPhase('forward-output');
+    eventBus.emit('phase:forward-output', { network: this.network, state: this.state });
+  }
+
+  stepLoss() {
+    this.state.setPhase('loss-per-output');
+    const { totalLoss, perOutput } = this.network.computeLoss(this.targets);
+    this.state.currentLoss = totalLoss;
+    this.state.currentPerOutputLoss = perOutput;
+    this.state.setPhase('loss-total');
+    eventBus.emit('phase:loss-total', { totalLoss, perOutput, network: this.network, state: this.state });
+  }
+
+  stepBackward() {
+    this.state.setPhase('backward-output');
+    this.network.backwardOutput(this.targets);
+    this.state.setPhase('backward-hidden');
+    this.network.backwardHidden();
+    eventBus.emit('phase:backward-hidden', { network: this.network, state: this.state });
+  }
+
   runFullIteration() {
-    this.stepForward();
-    this.stepLoss();
-    this.stepBackward();
-    this.stepUpdate();
+    this.network.forwardHidden(this.inputs);
+    this.network.forwardOutput();
+    this.network.computeLoss(this.targets);
+    this.network.backwardOutput(this.targets);
+    this.network.backwardHidden();
+    const oldW = this.network.updateWeights();
+    const { totalLoss, perOutput } = this.network.computeLoss(this.targets);
+    this.state.currentLoss = totalLoss;
+    this.state.currentPerOutputLoss = perOutput;
+    this.state.recordLoss(totalLoss);
+    this.state.epoch++;
     this.state.setPhase('idle');
   }
 
@@ -127,18 +195,23 @@ export class TrainingController {
   fastTrain(iterations) {
     this.stopAutoTrain();
     for (let i = 0; i < iterations; i++) {
-      this.network.forward(this.inputs);
+      this.network.forwardHidden(this.inputs);
+      this.network.forwardOutput();
       this.network.computeLoss(this.targets);
-      this.network.backward(this.targets);
-      const oldW = this.network.updateWeights();
+      this.network.backwardOutput(this.targets);
+      this.network.backwardHidden();
+      this.network.updateWeights();
       const { totalLoss } = this.network.computeLoss(this.targets);
       this.state.recordLoss(totalLoss);
       this.state.epoch++;
     }
     this.state.setPhase('idle');
-    // Do one more forward for display
-    this.network.forward(this.inputs);
-    this.network.computeLoss(this.targets);
+    // One more forward for display
+    this.network.forwardHidden(this.inputs);
+    this.network.forwardOutput();
+    const { totalLoss, perOutput } = this.network.computeLoss(this.targets);
+    this.state.currentLoss = totalLoss;
+    this.state.currentPerOutputLoss = perOutput;
     eventBus.emit('fast:complete', { network: this.network, state: this.state });
   }
 }

@@ -82,6 +82,107 @@ export class NeuralNetwork {
     return currentInput;
   }
 
+  /** Forward pass: hidden layer only (layer 0 weights) */
+  forwardHidden(inputs) {
+    this.netValues = [];
+    this.outValues = [inputs.slice()];
+
+    const nets = [];
+    const outs = [];
+    const numNeurons = this.layers[1];
+    for (let j = 0; j < numNeurons; j++) {
+      let net = this.biases[0][j];
+      for (let i = 0; i < inputs.length; i++) {
+        net += inputs[i] * this.weights[0][i][j];
+      }
+      nets.push(net);
+      outs.push(this.activation.fn(net));
+    }
+    this.netValues.push(nets);
+    this.outValues.push(outs);
+    return outs;
+  }
+
+  /** Forward pass: output layer only (assumes hidden already computed) */
+  forwardOutput() {
+    const hiddenOut = this.outValues[1];
+    const nets = [];
+    const outs = [];
+    const numNeurons = this.layers[2];
+    for (let j = 0; j < numNeurons; j++) {
+      let net = this.biases[1][j];
+      for (let i = 0; i < hiddenOut.length; i++) {
+        net += hiddenOut[i] * this.weights[1][i][j];
+      }
+      nets.push(net);
+      outs.push(this.activation.fn(net));
+    }
+    this.netValues.push(nets);
+    this.outValues.push(outs);
+    return outs;
+  }
+
+  /** Backward pass: output layer only */
+  backwardOutput(targets) {
+    const numLayers = this.weights.length;
+    this.deltas = new Array(numLayers);
+    this.gradients = new Array(numLayers);
+
+    const outputIdx = numLayers;
+    const outputOut = this.outValues[outputIdx];
+    const outputDeltas = [];
+    for (let j = 0; j < outputOut.length; j++) {
+      const dE_dout = mseDerivative(outputOut[j], targets[j]);
+      const dout_dnet = this.activation.derivative(outputOut[j]);
+      outputDeltas.push(dE_dout * dout_dnet);
+    }
+    this.deltas[numLayers - 1] = outputDeltas;
+
+    const hiddenOut = this.outValues[outputIdx - 1];
+    const outputGrads = [];
+    for (let i = 0; i < hiddenOut.length; i++) {
+      const row = [];
+      for (let j = 0; j < outputDeltas.length; j++) {
+        row.push(outputDeltas[j] * hiddenOut[i]);
+      }
+      outputGrads.push(row);
+    }
+    this.gradients[numLayers - 1] = outputGrads;
+    return { deltas: outputDeltas, gradients: outputGrads };
+  }
+
+  /** Backward pass: hidden layer only (assumes output backward already done) */
+  backwardHidden() {
+    const numLayers = this.weights.length;
+    for (let l = numLayers - 2; l >= 0; l--) {
+      const layerOut = this.outValues[l + 1];
+      const nextDeltas = this.deltas[l + 1];
+      const nextWeights = this.weights[l + 1];
+      const layerDeltas = [];
+      for (let j = 0; j < layerOut.length; j++) {
+        let errorSum = 0;
+        for (let k = 0; k < nextDeltas.length; k++) {
+          errorSum += nextDeltas[k] * nextWeights[j][k];
+        }
+        const dout_dnet = this.activation.derivative(layerOut[j]);
+        layerDeltas.push(errorSum * dout_dnet);
+      }
+      this.deltas[l] = layerDeltas;
+
+      const prevOut = this.outValues[l];
+      const layerGrads = [];
+      for (let i = 0; i < prevOut.length; i++) {
+        const row = [];
+        for (let j = 0; j < layerDeltas.length; j++) {
+          row.push(layerDeltas[j] * prevOut[i]);
+        }
+        layerGrads.push(row);
+      }
+      this.gradients[l] = layerGrads;
+    }
+    return { deltas: this.deltas, gradients: this.gradients };
+  }
+
   computeLoss(targets) {
     const output = this.outValues[this.outValues.length - 1];
     const totalLoss = mse(output, targets);

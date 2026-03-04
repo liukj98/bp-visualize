@@ -1,13 +1,18 @@
 import { formatNum } from '../utils/math-utils.js';
 import { weightColor, activationColor, gradientHeatColor } from '../utils/color-utils.js';
+import { MAJOR_PHASES } from '../model/training-state.js';
 
 export class NetworkRenderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.nodePositions = [];
-    this.padding = { top: 60, right: 40, bottom: 60, left: 40 };
+    this.errorNodePos = null;    // E_total node position
+    this.biasNodePositions = []; // bias nodes per non-input layer
+    this.padding = { top: 80, right: 80, bottom: 60, left: 40 };
     this.nodeRadius = 34;
+    this.biasRadius = 18;
+    this.errorRadius = 30;
     this.animState = null;
     this.dpr = window.devicePixelRatio || 1;
     this.resize();
@@ -24,24 +29,58 @@ export class NetworkRenderer {
     this.height = rect.height;
   }
 
+  _majorPhase(phase) {
+    return MAJOR_PHASES[phase] || phase;
+  }
+
+  _isForward(phase) {
+    const m = this._majorPhase(phase);
+    return m === 'forward';
+  }
+
+  _isBackward(phase) {
+    const m = this._majorPhase(phase);
+    return m === 'backward';
+  }
+
+  _isLoss(phase) {
+    const m = this._majorPhase(phase);
+    return m === 'loss';
+  }
+
   computeLayout(layers) {
     this.nodePositions = [];
     const numLayers = layers.length;
+    // Reserve extra column space on right for E_total
+    const totalColumns = numLayers + 1;
     const usableWidth = this.width - this.padding.left - this.padding.right;
     const usableHeight = this.height - this.padding.top - this.padding.bottom;
-    const layerSpacing = usableWidth / (numLayers - 1);
+    const layerSpacing = usableWidth / totalColumns;
 
     for (let l = 0; l < numLayers; l++) {
-      const x = this.padding.left + l * layerSpacing;
+      const x = this.padding.left + (l + 0.5) * layerSpacing;
       const numNodes = layers[l];
       const nodeSpacing = usableHeight / (numNodes + 1);
       const layerPositions = [];
-
       for (let n = 0; n < numNodes; n++) {
         const y = this.padding.top + (n + 1) * nodeSpacing;
         layerPositions.push({ x, y });
       }
       this.nodePositions.push(layerPositions);
+    }
+
+    // E_total node: right of output layer, vertically centered
+    const errorX = this.padding.left + (numLayers + 0.5) * layerSpacing;
+    const outputLayer = this.nodePositions[numLayers - 1];
+    const centerY = (outputLayer[0].y + outputLayer[outputLayer.length - 1].y) / 2;
+    this.errorNodePos = { x: errorX, y: centerY };
+
+    // Bias nodes: one above each non-input layer
+    this.biasNodePositions = [];
+    for (let l = 1; l < numLayers; l++) {
+      const layerX = this.nodePositions[l][0].x;
+      const topNodeY = this.nodePositions[l][0].y;
+      this.biasNodePositions.push({ x: layerX + 60, y: topNodeY - 80 });
     }
   }
 
@@ -51,7 +90,11 @@ export class NetworkRenderer {
     this.computeLayout(network.layers);
 
     this.drawConnections(network, state);
+    this.drawBiasConnections(network, state);
+    this.drawErrorConnections(network, state);
     this.drawNodes(network, state);
+    this.drawBiasNodes(network, state);
+    this.drawErrorNode(network, state);
     this.drawLabels(network);
 
     if (animState && animState.particles) {
@@ -61,11 +104,17 @@ export class NetworkRenderer {
 
   drawConnections(network, state) {
     const ctx = this.ctx;
+    const phase = state.phase;
 
     for (let l = 0; l < network.weights.length; l++) {
       const fromLayer = this.nodePositions[l];
       const toLayer = this.nodePositions[l + 1];
       const totalConns = fromLayer.length * toLayer.length;
+
+      // Determine if this layer's connections should be highlighted
+      const isActiveForward = (phase === 'forward-hidden' && l === 0) || (phase === 'forward-output' && l === 1);
+      const isActiveBackward = (phase === 'backward-output' && l === 1) || (phase === 'backward-hidden' && l === 0);
+      const showGradients = isActiveBackward || (this._isBackward(phase) && network.gradients[l] && network.gradients[l][0]);
 
       for (let i = 0; i < fromLayer.length; i++) {
         for (let j = 0; j < toLayer.length; j++) {
@@ -73,14 +122,18 @@ export class NetworkRenderer {
           const from = fromLayer[i];
           const to = toLayer[j];
 
-          // Line style based on phase
           let color = weightColor(w);
           let lineWidth = 1 + Math.abs(w) * 1.5;
 
-          if (state.phase === 'backward' && network.gradients[l] && network.gradients[l][i]) {
+          if (showGradients && network.gradients[l] && network.gradients[l][i]) {
             const grad = network.gradients[l][i][j];
             color = gradientHeatColor(grad);
             lineWidth = 1.5 + Math.abs(grad) * 15;
+          }
+
+          if (isActiveForward) {
+            color = '#22d3ee';
+            lineWidth = 2;
           }
 
           ctx.beginPath();
@@ -88,10 +141,11 @@ export class NetworkRenderer {
           ctx.lineTo(to.x, to.y);
           ctx.strokeStyle = color;
           ctx.lineWidth = Math.min(lineWidth, 5);
+          ctx.globalAlpha = isActiveForward || isActiveBackward ? 1 : 0.6;
           ctx.stroke();
+          ctx.globalAlpha = 1;
 
-          // Weight label — spread labels along the line to avoid overlap
-          // Each connection gets a unique t position between 0.2 and 0.8
+          // Weight label
           const connIdx = i * toLayer.length + j;
           const t = totalConns === 1 ? 0.5 : 0.2 + (connIdx / (totalConns - 1)) * 0.6;
           const lx = from.x + (to.x - from.x) * t;
@@ -102,23 +156,28 @@ export class NetworkRenderer {
           const offsetY = -Math.cos(angle) * 14;
 
           ctx.save();
-
-          // Draw background pill for readability
           const weightLabel = formatNum(w, 4);
-          const hasGrad = state.phase === 'backward' && network.gradients[l] && network.gradients[l][i];
+          const hasGrad = showGradients && network.gradients[l] && network.gradients[l][i];
           const gradLabel = hasGrad ? `∂=${formatNum(network.gradients[l][i][j], 4)}` : '';
 
           ctx.font = '10px "JetBrains Mono", monospace';
-          const textW = ctx.measureText(hasGrad ? `${weightLabel}  ${gradLabel}` : weightLabel).width;
+          const weightW = ctx.measureText(weightLabel).width;
+          let textW = weightW;
+          if (hasGrad) {
+            ctx.font = '9px "JetBrains Mono", monospace';
+            const gradW = ctx.measureText(gradLabel).width;
+            textW = Math.max(weightW, gradW);
+          }
           const bgX = lx + offsetX;
           const bgY = ly + offsetY;
-          const bgPad = 3;
+          const bgPad = 6;
 
           ctx.fillStyle = 'rgba(15,23,42,0.85)';
           ctx.beginPath();
           ctx.roundRect(bgX - textW / 2 - bgPad, bgY - 7 - bgPad, textW + bgPad * 2, (hasGrad ? 26 : 14) + bgPad * 2, 3);
           ctx.fill();
 
+          ctx.font = '10px "JetBrains Mono", monospace';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillStyle = 'rgba(200,210,230,0.95)';
@@ -129,30 +188,186 @@ export class NetworkRenderer {
             ctx.fillStyle = 'rgba(255,160,80,0.95)';
             ctx.fillText(gradLabel, bgX, bgY + 13);
           }
-
           ctx.restore();
         }
       }
     }
   }
 
+  drawBiasConnections(network, state) {
+    const ctx = this.ctx;
+    for (let bl = 0; bl < this.biasNodePositions.length; bl++) {
+      const biasPos = this.biasNodePositions[bl];
+      const layerIdx = bl + 1; // non-input layer index
+      const layerNodes = this.nodePositions[layerIdx];
+
+      for (let n = 0; n < layerNodes.length; n++) {
+        const to = layerNodes[n];
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.moveTo(biasPos.x, biasPos.y + this.biasRadius);
+        ctx.lineTo(to.x, to.y - this.nodeRadius);
+        ctx.strokeStyle = 'rgba(148,163,184,0.4)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Bias value label on connection
+        const mx = (biasPos.x + to.x) / 2;
+        const my = (biasPos.y + this.biasRadius + to.y - this.nodeRadius) / 2;
+        ctx.font = '9px "JetBrains Mono", monospace';
+        ctx.fillStyle = 'rgba(148,163,184,0.7)';
+        ctx.textAlign = 'center';
+        ctx.fillText(formatNum(network.biases[bl][n], 2), mx + 15, my);
+        ctx.restore();
+      }
+    }
+  }
+
+  drawErrorConnections(network, state) {
+    const ctx = this.ctx;
+    if (!this.errorNodePos) return;
+
+    const phase = state.phase;
+    const showError = this._isLoss(phase) || this._isBackward(phase) || phase === 'update';
+    if (!showError && phase !== 'idle') return;
+    // Show in idle only if we have loss data
+    if (phase === 'idle' && !state.currentPerOutputLoss) return;
+
+    const outputLayer = this.nodePositions[this.nodePositions.length - 1];
+    const perLoss = state.currentPerOutputLoss;
+
+    for (let j = 0; j < outputLayer.length; j++) {
+      const from = outputLayer[j];
+      const to = this.errorNodePos;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash([6, 4]);
+      ctx.moveTo(from.x + this.nodeRadius, from.y);
+      ctx.lineTo(to.x - this.errorRadius, to.y);
+
+      if (this._isLoss(phase)) {
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2;
+      } else if (this._isBackward(phase)) {
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 2;
+      } else {
+        ctx.strokeStyle = 'rgba(148,163,184,0.4)';
+        ctx.lineWidth = 1;
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Per-output error label
+      if (perLoss && perLoss[j] !== undefined) {
+        const mx = (from.x + this.nodeRadius + to.x - this.errorRadius) / 2;
+        const my = (from.y + to.y) / 2;
+        ctx.font = '10px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#60a5fa';
+        ctx.textAlign = 'center';
+        ctx.fillText(`E_o${j + 1}=${formatNum(perLoss[j], 4)}`, mx, my - 8);
+      }
+      ctx.restore();
+    }
+  }
+
+  drawBiasNodes(network, state) {
+    const ctx = this.ctx;
+    for (let bl = 0; bl < this.biasNodePositions.length; bl++) {
+      const pos = this.biasNodePositions[bl];
+      const biasVal = network.biases[bl][0]; // display first bias value
+
+      // Draw bias node circle
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, this.biasRadius, 0, Math.PI * 2);
+      ctx.fillStyle = '#374151';
+      ctx.fill();
+      ctx.strokeStyle = '#6b7280';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Label
+      ctx.font = 'bold 11px "Inter", sans-serif';
+      ctx.fillStyle = '#9ca3af';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('+1', pos.x, pos.y - 3);
+
+      ctx.font = '9px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#6b7280';
+      ctx.fillText(`b${bl + 1}`, pos.x, pos.y + 10);
+    }
+  }
+
+  drawErrorNode(network, state) {
+    const ctx = this.ctx;
+    if (!this.errorNodePos) return;
+
+    const phase = state.phase;
+    const hasLoss = state.currentLoss !== null && state.currentLoss !== undefined;
+
+    // Show error node in loss, backward, update phases, or idle if loss data exists
+    const showError = this._isLoss(phase) || this._isBackward(phase) || phase === 'update' || (phase === 'idle' && hasLoss);
+    if (!showError) return;
+
+    const pos = this.errorNodePos;
+
+    // Draw diamond shape
+    ctx.save();
+    ctx.beginPath();
+    const r = this.errorRadius;
+    ctx.moveTo(pos.x, pos.y - r);
+    ctx.lineTo(pos.x + r, pos.y);
+    ctx.lineTo(pos.x, pos.y + r);
+    ctx.lineTo(pos.x - r, pos.y);
+    ctx.closePath();
+
+    if (this._isLoss(phase)) {
+      ctx.fillStyle = 'rgba(59,130,246,0.2)';
+      ctx.strokeStyle = '#3b82f6';
+    } else if (this._isBackward(phase)) {
+      ctx.fillStyle = 'rgba(249,115,22,0.2)';
+      ctx.strokeStyle = '#f97316';
+    } else {
+      ctx.fillStyle = 'rgba(30,41,59,0.8)';
+      ctx.strokeStyle = '#475569';
+    }
+    ctx.lineWidth = 2.5;
+    ctx.fill();
+    ctx.stroke();
+
+    // Label
+    ctx.font = 'bold 11px "Inter", sans-serif';
+    ctx.fillStyle = '#e2e8f0';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('E_total', pos.x, pos.y - 6);
+
+    if (hasLoss) {
+      ctx.font = 'bold 10px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#60a5fa';
+      ctx.fillText(formatNum(state.currentLoss, 6), pos.x, pos.y + 9);
+    }
+    ctx.restore();
+  }
+
   drawNodes(network, state) {
     const ctx = this.ctx;
     const layerNames = this.getLayerNames(network.layers);
+    const phase = state.phase;
 
     for (let l = 0; l < this.nodePositions.length; l++) {
       for (let n = 0; n < this.nodePositions[l].length; n++) {
         const pos = this.nodePositions[l][n];
-        const isInput = l === 0;
-        const isOutput = l === this.nodePositions.length - 1;
 
-        // Node value
         let outVal = null;
         let netVal = null;
         if (network.outValues[l]) outVal = network.outValues[l][n];
         if (l > 0 && network.netValues[l - 1]) netVal = network.netValues[l - 1][n];
 
-        // Node color
         let fillColor = '#1e293b';
         let strokeColor = '#475569';
 
@@ -161,14 +376,24 @@ export class NetworkRenderer {
           strokeColor = '#60a5fa';
         }
 
-        if (state.phase === 'forward' && outVal !== null) {
+        // Highlight based on sub-phase
+        if (phase === 'forward-hidden' && l === 1 && outVal !== null) {
           strokeColor = '#22d3ee';
+        } else if (phase === 'forward-output' && l === 2 && outVal !== null) {
+          strokeColor = '#22d3ee';
+        } else if (this._isForward(phase) && outVal !== null) {
+          strokeColor = '#60a5fa';
         }
-        if (state.phase === 'backward' && l > 0 && network.deltas[l - 1]) {
+
+        if (phase === 'backward-output' && l === 2 && network.deltas[1]) {
+          strokeColor = '#f97316';
+        } else if (phase === 'backward-hidden' && l === 1 && network.deltas[0]) {
+          strokeColor = '#f97316';
+        } else if (this._isBackward(phase) && l > 0 && network.deltas[l - 1]) {
           strokeColor = '#f97316';
         }
 
-        // Draw node circle
+        // Draw node
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, this.nodeRadius, 0, Math.PI * 2);
         ctx.fillStyle = fillColor;
@@ -177,18 +402,15 @@ export class NetworkRenderer {
         ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        // Determine text color based on background brightness
         const isDarkBg = this._isColorDark(fillColor);
         const labelColor = isDarkBg ? '#e2e8f0' : '#1e293b';
         const valueColor = isDarkBg ? '#93c5fd' : '#1e3a5f';
 
-        // Node label inside
         ctx.font = 'bold 13px "Inter", sans-serif';
         ctx.fillStyle = labelColor;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // Text shadow for readability
         ctx.save();
         if (!isDarkBg) {
           ctx.shadowColor = 'rgba(255,255,255,0.5)';
@@ -201,7 +423,6 @@ export class NetworkRenderer {
         const nodeLabel = layerNames[l][n];
         ctx.fillText(nodeLabel, pos.x, pos.y - 8);
 
-        // Value inside node
         if (outVal !== null && outVal !== undefined) {
           ctx.font = 'bold 11px "JetBrains Mono", monospace';
           ctx.fillStyle = valueColor;
@@ -209,16 +430,17 @@ export class NetworkRenderer {
         }
         ctx.restore();
 
-        // Net value above node (for hidden and output layers)
-        if (netVal !== null && netVal !== undefined && state.phase !== 'idle') {
+        // Net value above node
+        if (netVal !== null && netVal !== undefined && phase !== 'idle') {
           ctx.font = '9px "JetBrains Mono", monospace';
           ctx.fillStyle = 'rgba(148,163,184,0.8)';
           ctx.textAlign = 'center';
-          ctx.fillText(`net=${formatNum(netVal, 4)}`, pos.x, pos.y - this.nodeRadius - 10);
+          ctx.fillText(`net=${formatNum(netVal, 4)}`, pos.x - 40, pos.y - this.nodeRadius - 6);
         }
 
-        // Delta below node (during backward)
-        if (state.phase === 'backward' && l > 0 && network.deltas[l - 1] && network.deltas[l - 1][n] !== undefined) {
+        // Delta below node
+        const showDelta = this._isBackward(phase) || phase === 'update';
+        if (showDelta && l > 0 && network.deltas[l - 1] && network.deltas[l - 1][n] !== undefined) {
           ctx.font = '9px "JetBrains Mono", monospace';
           ctx.fillStyle = 'rgba(251,146,60,0.9)';
           ctx.textAlign = 'center';
@@ -238,7 +460,12 @@ export class NetworkRenderer {
 
     for (let l = 0; l < this.nodePositions.length; l++) {
       const x = this.nodePositions[l][0].x;
-      ctx.fillText(labels[l], x, this.padding.top - 20);
+      ctx.fillText(labels[l], x, this.padding.top - 30);
+    }
+
+    // Error node label
+    if (this.errorNodePos) {
+      ctx.fillText('误差', this.errorNodePos.x, this.padding.top - 30);
     }
   }
 
@@ -257,19 +484,16 @@ export class NetworkRenderer {
 
   getLayerNames(layers) {
     const names = [];
-    // Input layer
     const inputNames = [];
     for (let i = 0; i < layers[0]; i++) inputNames.push(`i${i + 1}`);
     names.push(inputNames);
 
-    // Hidden layers
     for (let l = 1; l < layers.length - 1; l++) {
       const hiddenNames = [];
       for (let i = 0; i < layers[l]; i++) hiddenNames.push(`h${i + 1}`);
       names.push(hiddenNames);
     }
 
-    // Output layer
     const outputNames = [];
     for (let i = 0; i < layers[layers.length - 1]; i++) outputNames.push(`o${i + 1}`);
     names.push(outputNames);
@@ -285,11 +509,9 @@ export class NetworkRenderer {
   }
 
   _isColorDark(color) {
-    // Parse rgb/rgba string to get brightness
     const match = color.match(/\d+/g);
     if (!match || match.length < 3) return true;
     const [r, g, b] = match.map(Number);
-    // Relative luminance approximation
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
     return luminance < 0.55;
   }

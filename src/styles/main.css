@@ -240,6 +240,14 @@ body {
 
 .btn-danger:hover { background: rgba(239,68,68,0.25); }
 
+.btn-skip {
+  background: rgba(168,85,247,0.15);
+  color: #a855f7;
+  border: 1px solid rgba(168,85,247,0.3);
+}
+
+.btn-skip:hover { background: rgba(168,85,247,0.25); }
+
 .input-small {
   width: 70px;
   padding: 7px 8px;

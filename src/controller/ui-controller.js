@@ -1,5 +1,6 @@
 import { eventBus } from './event-bus.js';
 import { formatNum } from '../utils/math-utils.js';
+import { PHASE_LABELS, MAJOR_PHASES } from '../model/training-state.js';
 
 export class UIController {
   constructor(trainingController, renderer, animEngine, chartRenderer, formulaDisplay) {
@@ -21,6 +22,15 @@ export class UIController {
       if (this.isAnimating || this.tc.state.isAutoTraining) return;
       this.executeStep();
     });
+
+    // Skip to next phase button
+    const skipBtn = document.getElementById('btn-skip');
+    if (skipBtn) {
+      skipBtn.addEventListener('click', () => {
+        if (this.isAnimating || this.tc.state.isAutoTraining) return;
+        this.executeSkip();
+      });
+    }
 
     // Auto train
     document.getElementById('btn-auto').addEventListener('click', () => {
@@ -105,6 +115,7 @@ export class UIController {
       this.chart.render(this.tc.state.lossHistory);
       this.updateInfoPanel();
       this.formula.renderPhase('idle', this.tc.network, this.tc.targets);
+      this.updatePhaseIndicator();
     });
 
     eventBus.on('fast:complete', () => {
@@ -112,52 +123,127 @@ export class UIController {
       this.chart.render(this.tc.state.lossHistory);
       this.updateInfoPanel();
       this.formula.renderPhase('idle', this.tc.network, this.tc.targets);
+      this.updatePhaseIndicator();
     });
   }
 
   executeStep() {
     const phase = this.tc.state.phase;
+    const animDuration = 800;
 
-    if (phase === 'idle') {
-      // Forward propagation with animation
-      this.isAnimating = true;
-      this.tc.stepForward();
-      this.animEngine.animateForward(this.tc.network, this.tc.state, 1200, () => {
-        this.isAnimating = false;
-        this.renderNetwork();
-        this.formula.renderPhase('forward', this.tc.network, this.tc.targets);
+    switch (phase) {
+      case 'idle':
+        // Forward hidden with animation
+        this.isAnimating = true;
+        this.tc.stepForwardHidden();
         this.updatePhaseIndicator();
-      });
-      this.updatePhaseIndicator();
-    } else if (phase === 'forward') {
-      this.tc.stepLoss();
-      this.renderNetwork();
-      this.formula.renderPhase('loss', this.tc.network, this.tc.targets);
-      this.updateInfoPanel();
-      this.updatePhaseIndicator();
-    } else if (phase === 'loss') {
-      this.isAnimating = true;
-      this.tc.stepBackward();
-      this.animEngine.animateBackward(this.tc.network, this.tc.state, 1200, () => {
-        this.isAnimating = false;
-        this.renderNetwork();
-        this.formula.renderPhase('backward', this.tc.network, this.tc.targets);
+        this.animEngine.animateForwardHidden(this.tc.network, this.tc.state, animDuration, () => {
+          this.isAnimating = false;
+          this.renderNetwork();
+          this.formula.renderPhase('forward-hidden', this.tc.network, this.tc.targets);
+          this.updatePhaseIndicator();
+        });
+        break;
+
+      case 'forward-hidden':
+        // Forward output with animation
+        this.isAnimating = true;
+        this.tc.stepForwardOutput();
         this.updatePhaseIndicator();
-      });
-      this.updatePhaseIndicator();
-    } else if (phase === 'backward') {
-      const oldWeights = this.tc.stepUpdate();
-      this.renderNetwork();
-      this.chart.render(this.tc.state.lossHistory);
-      this.formula.renderPhase('update', this.tc.network, this.tc.targets);
-      this.updateInfoPanel();
-      this.updatePhaseIndicator();
-    } else if (phase === 'update') {
-      this.tc.state.setPhase('idle');
-      this.renderNetwork();
-      this.formula.renderPhase('idle', this.tc.network, this.tc.targets);
-      this.updatePhaseIndicator();
+        this.animEngine.animateForwardOutput(this.tc.network, this.tc.state, animDuration, () => {
+          this.isAnimating = false;
+          this.renderNetwork();
+          this.formula.renderPhase('forward-output', this.tc.network, this.tc.targets);
+          this.updatePhaseIndicator();
+        });
+        break;
+
+      case 'forward-output':
+        // Loss per output with animation
+        this.isAnimating = true;
+        this.tc.stepLossPerOutput();
+        this.updatePhaseIndicator();
+        this.animEngine.animateLossFlow(this.tc.network, this.tc.state, animDuration, () => {
+          this.isAnimating = false;
+          this.renderNetwork();
+          this.formula.renderPhase('loss-per-output', this.tc.network, this.tc.targets);
+          this.updateInfoPanel();
+          this.updatePhaseIndicator();
+        });
+        break;
+
+      case 'loss-per-output':
+        // Loss total (no animation, just display)
+        this.tc.stepLossTotal();
+        this.renderNetwork();
+        this.formula.renderPhase('loss-total', this.tc.network, this.tc.targets);
+        this.updateInfoPanel();
+        this.updatePhaseIndicator();
+        break;
+
+      case 'loss-total':
+        // Backward output with animation
+        this.isAnimating = true;
+        this.tc.stepBackwardOutput();
+        this.updatePhaseIndicator();
+        this.animEngine.animateBackwardOutput(this.tc.network, this.tc.state, animDuration, () => {
+          this.isAnimating = false;
+          this.renderNetwork();
+          this.formula.renderPhase('backward-output', this.tc.network, this.tc.targets);
+          this.updatePhaseIndicator();
+        });
+        break;
+
+      case 'backward-output':
+        // Backward hidden with animation
+        this.isAnimating = true;
+        this.tc.stepBackwardHidden();
+        this.updatePhaseIndicator();
+        this.animEngine.animateBackwardHidden(this.tc.network, this.tc.state, animDuration, () => {
+          this.isAnimating = false;
+          this.renderNetwork();
+          this.formula.renderPhase('backward-hidden', this.tc.network, this.tc.targets);
+          this.updatePhaseIndicator();
+        });
+        break;
+
+      case 'backward-hidden':
+        // Weight update
+        this.tc.stepUpdate();
+        this.renderNetwork();
+        this.chart.render(this.tc.state.lossHistory);
+        this.formula.renderPhase('update', this.tc.network, this.tc.targets);
+        this.updateInfoPanel();
+        this.updatePhaseIndicator();
+        break;
+
+      case 'update':
+        // Back to idle
+        this.tc.state.setPhase('idle');
+        this.renderNetwork();
+        this.formula.renderPhase('idle', this.tc.network, this.tc.targets);
+        this.updatePhaseIndicator();
+        break;
     }
+  }
+
+  executeSkip() {
+    const currentMajor = MAJOR_PHASES[this.tc.state.phase];
+    if (!currentMajor || currentMajor === 'idle') return;
+
+    // Execute remaining sub-steps of current major phase without animation
+    while (true) {
+      const phase = this.tc.state.phase;
+      const major = MAJOR_PHASES[phase];
+      if (major !== currentMajor || phase === 'idle') break;
+      this.tc.nextStep();
+    }
+
+    this.renderNetwork();
+    this.chart.render(this.tc.state.lossHistory);
+    this.formula.renderPhase(this.tc.state.phase, this.tc.network, this.tc.targets);
+    this.updateInfoPanel();
+    this.updatePhaseIndicator();
   }
 
   renderNetwork() {
@@ -170,28 +256,35 @@ export class UIController {
 
     const epoch = this.tc.state.epoch;
     const loss = this.tc.state.currentLoss;
-    const phase = this.tc.state.phase;
+    const step = this.tc.state.stepNumber;
+    const total = this.tc.state.totalSteps;
 
     info.innerHTML = `
       <div class="info-row"><span>迭代次数</span><strong>${epoch}</strong></div>
       <div class="info-row"><span>当前损失</span><strong>${loss !== null ? formatNum(loss, 6) : '—'}</strong></div>
       <div class="info-row"><span>学习率</span><strong>${this.tc.network.learningRate}</strong></div>
       <div class="info-row"><span>激活函数</span><strong>${this.tc.network.activationName}</strong></div>
+      <div class="info-row"><span>当前步骤</span><strong>${step > 0 ? `${step} / ${total}` : '—'}</strong></div>
     `;
   }
 
   updatePhaseIndicator() {
-    const phaseMap = {
-      idle: '就绪',
-      forward: '前向传播',
-      loss: '损失计算',
-      backward: '反向传播',
-      update: '权重更新',
-    };
+    const phase = this.tc.state.phase;
+    const label = PHASE_LABELS[phase] || '就绪';
+    const major = MAJOR_PHASES[phase] || 'idle';
+    const step = this.tc.state.stepNumber;
+    const total = this.tc.state.totalSteps;
+
     const el = document.getElementById('phase-indicator');
     if (el) {
-      el.textContent = phaseMap[this.tc.state.phase] || '就绪';
-      el.className = 'phase-indicator phase-' + this.tc.state.phase;
+      el.textContent = step > 0 ? `${label}  (${step}/${total})` : label;
+      el.className = 'phase-indicator phase-' + major;
+    }
+
+    // Show/hide skip button
+    const skipBtn = document.getElementById('btn-skip');
+    if (skipBtn) {
+      skipBtn.style.display = phase !== 'idle' ? 'inline-block' : 'none';
     }
   }
 
