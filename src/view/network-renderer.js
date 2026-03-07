@@ -1,5 +1,5 @@
 import { formatNum } from '../utils/math-utils.js';
-import { weightColor, activationColor, gradientHeatColor } from '../utils/color-utils.js';
+import { gradientHeatColor } from '../utils/color-utils.js';
 import { MAJOR_PHASES } from '../model/training-state.js';
 
 export class NetworkRenderer {
@@ -98,13 +98,12 @@ export class NetworkRenderer {
           const from = fromLayer[i];
           const to = toLayer[j];
 
-          let color = weightColor(w);
-          let lineWidth = 1 + Math.abs(w) * 1.5;
+          let color = 'rgba(148,163,184,0.7)';
+          let lineWidth = 1.5;
 
           if (showGradients && network.gradients[l] && network.gradients[l][i]) {
-            const grad = network.gradients[l][i][j];
-            color = gradientHeatColor(grad);
-            lineWidth = 1.5 + Math.abs(grad) * 15;
+            color = gradientHeatColor(network.gradients[l][i][j]);
+            lineWidth = 2;
           }
 
           if (isActiveForward) {
@@ -116,8 +115,8 @@ export class NetworkRenderer {
           ctx.moveTo(from.x, from.y);
           ctx.lineTo(to.x, to.y);
           ctx.strokeStyle = color;
-          ctx.lineWidth = Math.min(lineWidth, 5);
-          ctx.globalAlpha = isActiveForward || isActiveBackward ? 1 : 0.6;
+          ctx.lineWidth = lineWidth;
+          ctx.globalAlpha = 1;
           ctx.stroke();
           ctx.globalAlpha = 1;
 
@@ -236,7 +235,7 @@ export class NetworkRenderer {
         let strokeColor = '#475569';
 
         if (outVal !== null && outVal !== undefined) {
-          fillColor = activationColor(outVal);
+          fillColor = '#1e3a5f';
           strokeColor = '#60a5fa';
         }
 

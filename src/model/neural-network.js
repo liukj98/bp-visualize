@@ -264,11 +264,11 @@ export function createDefaultNetwork() {
     layers: [2, 2, 1],
     learningRate: 0.1,
     initialWeights: [
-      [[0.1, 0.2], [0.3, 0.4]],   // input→hidden: w1,w2 / w3,w4
-      [[0.5], [0.6]],              // hidden→output: w5 / w6
+      [[0.5, 2.3], [1.5, 3]],     // input→hidden: w1,w2 / w3,w4
+      [[1], [1]],                  // hidden→output: w5 / w6
     ],
   });
 }
 
-export const DEFAULT_INPUTS = [2, 3];
-export const DEFAULT_TARGETS = [1.8];
+export const DEFAULT_INPUTS = [1, 0.5];
+export const DEFAULT_TARGETS = [4];
