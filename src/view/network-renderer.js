@@ -12,7 +12,7 @@ export class NetworkRenderer {
     this.padding = { top: 80, right: 80, bottom: 60, left: 40 };
     this.nodeRadius = 34;
     this.biasRadius = 18;
-    this.errorRadius = 30;
+    this.errorRadius = 44;
     this.animState = null;
     this.dpr = window.devicePixelRatio || 1;
     this.resize();
@@ -145,9 +145,10 @@ export class NetworkRenderer {
           ctx.stroke();
           ctx.globalAlpha = 1;
 
-          // Weight label
+          // Weight label — straight connections (i==j) at midpoint, cross connections spread out
           const connIdx = i * toLayer.length + j;
-          const t = totalConns === 1 ? 0.5 : 0.2 + (connIdx / (totalConns - 1)) * 0.6;
+          const isStraight = (i === j);
+          const t = isStraight ? 0.5 : (totalConns === 1 ? 0.5 : 0.2 + (connIdx / (totalConns - 1)) * 0.6);
           const lx = from.x + (to.x - from.x) * t;
           const ly = from.y + (to.y - from.y) * t;
 
