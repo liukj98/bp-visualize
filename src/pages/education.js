@@ -10,6 +10,16 @@ function renderFormula(latex) {
   return span.outerHTML;
 }
 
+function inlineMath(latex) {
+  const span = document.createElement('span');
+  try {
+    katex.render(latex, span, { throwOnError: false, displayMode: false });
+  } catch (e) {
+    span.textContent = latex;
+  }
+  return span.outerHTML;
+}
+
 export function renderEducationPage(container) {
   container.innerHTML = `
     <h2>BP 反向传播算法详解</h2>
@@ -20,16 +30,16 @@ export function renderEducationPage(container) {
     <h3 id="sec-params">网络结构与初始参数</h3>
     <div class="edu-step-card">
       <h4>三层线性网络（2-2-1）</h4>
-      <p>输入层 2 个节点（x₁, x₂），隐藏层 2 个节点（h₁, h₂），输出层 1 个节点（y）。共 6 个权重，<strong>无激活函数、无偏置</strong>。</p>
+      <p>输入层 2 个节点（${inlineMath('x_1, x_2')}），隐藏层 2 个节点（${inlineMath('h_1, h_2')}），输出层 1 个节点（${inlineMath('y')}）。共 6 个权重，<strong>无激活函数、无偏置</strong>。</p>
       <table class="edu-data-table">
         <tr><th>参数</th><th>值</th></tr>
-        <tr><td>输入</td><td>x₁ = 1, x₂ = 0.5</td></tr>
-        <tr><td>目标输出</td><td>target = 4</td></tr>
-        <tr><td>权重（输入→隐藏）</td><td>w₁ = 0.5, w₂ = 2.3, w₃ = 1.5, w₄ = 3</td></tr>
-        <tr><td>权重（隐藏→输出）</td><td>w₅ = 1, w₆ = 1</td></tr>
-        <tr><td>学习率</td><td>η = 0.1</td></tr>
+        <tr><td>输入</td><td>${inlineMath('x_1 = 1,\\; x_2 = 0.5')}</td></tr>
+        <tr><td>目标输出</td><td>${inlineMath('\\text{target} = 4')}</td></tr>
+        <tr><td>权重（输入→隐藏）</td><td>${inlineMath('w_1 = 0.5,\\; w_2 = 2.3,\\; w_3 = 1.5,\\; w_4 = 3')}</td></tr>
+        <tr><td>权重（隐藏→输出）</td><td>${inlineMath('w_5 = 1,\\; w_6 = 1')}</td></tr>
+        <tr><td>学习率</td><td>${inlineMath('\\eta = 0.1')}</td></tr>
       </table>
-      <p><em>权重含义：w₁ 连接 x₁→h₁，w₂ 连接 x₁→h₂，w₃ 连接 x₂→h₁，w₄ 连接 x₂→h₂，w₅ 连接 h₁→y，w₆ 连接 h₂→y</em></p>
+      <p><em>权重含义：${inlineMath('w_1')} 连接 ${inlineMath('x_1 \\to h_1')}，${inlineMath('w_2')} 连接 ${inlineMath('x_1 \\to h_2')}，${inlineMath('w_3')} 连接 ${inlineMath('x_2 \\to h_1')}，${inlineMath('w_4')} 连接 ${inlineMath('x_2 \\to h_2')}，${inlineMath('w_5')} 连接 ${inlineMath('h_1 \\to y')}，${inlineMath('w_6')} 连接 ${inlineMath('h_2 \\to y')}</em></p>
     </div>
 
     <h3 id="sec-forward">步骤一：前向传播</h3>
@@ -123,22 +133,20 @@ export function renderEducationPage(container) {
     <h3 id="sec-concepts">关键概念</h3>
     <div class="edu-step-card">
       <h4>链式法则</h4>
-      <p>链式法则是反向传播的数学基础。对于复合函数 f(g(x))，其导数为 f'(g(x)) · g'(x)。在神经网络中，误差通过多层函数嵌套，链式法则将复杂的求导分解为逐层可计算的简单乘积。</p>
+      <p>链式法则是反向传播的数学基础。对于复合函数 ${inlineMath('f(g(x))')}，其导数为 ${inlineMath("f'(g(x)) \\cdot g'(x)")}。在神经网络中，误差通过多层函数嵌套，链式法则将复杂的求导分解为逐层可计算的简单乘积。</p>
     </div>
 
     <div class="edu-step-card">
       <h4>为什么使用纯线性网络？</h4>
       <p>本演示去掉了激活函数和偏置参数，目的是让你<strong>专注于反向传播算法本身</strong>：</p>
-      <ul>
-        <li>线性网络的偏导数更直观：∂h/∂w = x（而非 σ'(net) × x）</li>
-        <li>没有激活函数导数的干扰，链式法则的传递过程一目了然</li>
-        <li>理解了线性情况后，加上激活函数和偏置只是多乘一个导数项</li>
-      </ul>
+      <p>· 线性网络的偏导数更直观：${inlineMath('\\partial h / \\partial w = x')}（而非 ${inlineMath("\\sigma'(net) \\times x")}）</p>
+      <p>· 没有激活函数导数的干扰，链式法则的传递过程一目了然</p>
+      <p>· 理解了线性情况后，加上激活函数和偏置只是多乘一个导数项</p>
     </div>
 
     <div class="edu-step-card">
       <h4>梯度下降</h4>
-      <p>梯度下降是沿着损失函数下降最快的方向更新参数。更新公式 w_new = w_old - η × ∂Loss/∂w 保证了每一步更新都在减小误差（当学习率 η 足够小时）。</p>
+      <p>梯度下降是沿着损失函数下降最快的方向更新参数。更新公式 ${inlineMath('w_{new} = w_{old} - \\eta \\times \\frac{\\partial Loss}{\\partial w}')} 保证了每一步更新都在减小误差（当学习率 ${inlineMath('\\eta')} 足够小时）。</p>
     </div>
   `;
 

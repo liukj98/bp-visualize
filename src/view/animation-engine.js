@@ -46,7 +46,7 @@ export class AnimationEngine {
 
   /** Animate backward: output → hidden layer gradients (no E_total) */
   animateBackwardOutput(network, state, duration, callback) {
-    this._animateLayerParticlesReverse(network, state, 1, '#f97316', duration, callback);
+    this._animateLayerParticlesReverse(network, state, 2, '#f97316', duration, callback);
   }
 
   /** Animate backward: output → hidden layer gradients */
