@@ -523,11 +523,73 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: 0.9em;
 }
 
-/* Education Page */
+/* Education Page Layout */
+.education-layout {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.edu-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  padding: 20px 0;
+  overflow-y: auto;
+}
+
+.edu-nav-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.edu-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.edu-nav-list li {
+  margin: 0;
+}
+
+.edu-nav-item {
+  display: block;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: all 0.2s;
+  line-height: 1.4;
+}
+
+.edu-nav-item:hover {
+  color: var(--text-primary);
+  background: rgba(96,165,250,0.08);
+}
+
+.edu-nav-item.active {
+  color: var(--accent-cyan);
+  border-left-color: var(--accent-cyan);
+  background: rgba(34,211,238,0.08);
+  font-weight: 500;
+}
+
+/* Education Page Content */
 .education-page {
+  flex: 1;
   max-width: 800px;
   margin: 0 auto;
-  padding: 32px 24px 16px;
+  padding: 32px 32px 16px;
+  overflow-y: auto;
 }
 
 .education-page h2 {
