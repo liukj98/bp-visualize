@@ -27,7 +27,7 @@ export function renderEducationPage(container) {
         <tr><td>权重（输入→隐藏）</td><td>w₁ = 0.15, w₂ = 0.20, w₃ = 0.25, w₄ = 0.30</td></tr>
         <tr><td>权重（隐藏→输出）</td><td>w₅ = 0.40, w₆ = 0.45, w₇ = 0.50, w₈ = 0.55</td></tr>
         <tr><td>偏置</td><td>b₁ = 0.35（隐藏层）, b₂ = 0.60（输出层）</td></tr>
-        <tr><td>学习率</td><td>η = 0.1</td></tr>
+        <tr><td>学习率</td><td>η = 0.5</td></tr>
       </table>
     </div>
 
@@ -112,10 +112,10 @@ export function renderEducationPage(container) {
       <h4>梯度下降</h4>
       <p>使用计算出的梯度更新每个权重：</p>
       <div class="edu-formula">${renderFormula('w_{new} = w_{old} - \\eta \\cdot \\frac{\\partial E}{\\partial w}')}</div>
-      <div class="edu-formula">${renderFormula("w_5' = 0.40 - 0.1 \\times 0.082167041 = 0.391783296")}</div>
-      <div class="edu-formula">${renderFormula("w_1' = 0.15 - 0.1 \\times 0.000603 = 0.1499397")}</div>
-      <p>更新后的网络再次前向传播，总误差从 <strong>0.298371109</strong> 降低到 <strong>0.296904182</strong>。</p>
-      <p>由于学习率较小（η = 0.1），每次更新幅度更小但更稳定。经过 <strong>10000 次迭代</strong>后，误差可降低至 <strong>≈ 0.000035</strong>，网络几乎完美拟合目标输出。</p>
+      <div class="edu-formula">${renderFormula("w_5' = 0.40 - 0.5 \\times 0.082167041 = 0.358916480")}</div>
+      <div class="edu-formula">${renderFormula("w_1' = 0.15 - 0.5 \\times 0.000438568 = 0.149780716")}</div>
+      <p>更新后的网络再次前向传播，总误差从 <strong>0.298371109</strong> 降低到 <strong>0.280471447</strong>。</p>
+      <p>经过 <strong>10000 次迭代</strong>后，误差可降低至 <strong>≈ 0.0000024</strong>，网络几乎完美拟合目标输出。</p>
     </div>
 
     <h3 id="sec-concepts">关键概念</h3>

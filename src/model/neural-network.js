@@ -4,7 +4,7 @@ import { mse, msePerOutput, mseDerivative } from './loss-functions.js';
 export class NeuralNetwork {
   constructor(config = {}) {
     this.layers = config.layers || [2, 2, 2];
-    this.learningRate = config.learningRate || 0.1;
+    this.learningRate = config.learningRate || 0.5;
     this.activationName = config.activation || 'sigmoid';
     this.activation = activations[this.activationName];
 
