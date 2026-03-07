@@ -25,17 +25,12 @@ export class TrainingController {
     eventBus.emit('phase:forward-output', { network: this.network, state: this.state });
   }
 
-  stepLossPerOutput() {
-    this.state.setPhase('loss-per-output');
+  stepLoss() {
+    this.state.setPhase('loss');
     const { totalLoss, perOutput } = this.network.computeLoss(this.targets);
     this.state.currentLoss = totalLoss;
     this.state.currentPerOutputLoss = perOutput;
-    eventBus.emit('phase:loss-per-output', { totalLoss, perOutput, network: this.network, state: this.state });
-  }
-
-  stepLossTotal() {
-    this.state.setPhase('loss-total');
-    eventBus.emit('phase:loss-total', { network: this.network, state: this.state });
+    eventBus.emit('phase:loss', { totalLoss, perOutput, network: this.network, state: this.state });
   }
 
   stepBackwardOutput() {
@@ -69,10 +64,8 @@ export class TrainingController {
       case 'forward-hidden':
         return this.stepForwardOutput();
       case 'forward-output':
-        return this.stepLossPerOutput();
-      case 'loss-per-output':
-        return this.stepLossTotal();
-      case 'loss-total':
+        return this.stepLoss();
+      case 'loss':
         return this.stepBackwardOutput();
       case 'backward-output':
         return this.stepBackwardHidden();
@@ -88,11 +81,9 @@ export class TrainingController {
   /** Skip remaining sub-steps of current major phase */
   skipToNextMajorPhase() {
     const currentMajor = MAJOR_PHASES[this.state.phase];
-    // Execute remaining sub-steps of this major phase silently
     while (MAJOR_PHASES[this.state.phase] === currentMajor && this.state.phase !== 'idle') {
       this.nextStep();
     }
-    // If we ended at idle, the step already completed
     return this.state.phase;
   }
 
@@ -106,13 +97,12 @@ export class TrainingController {
     eventBus.emit('phase:forward-output', { network: this.network, state: this.state });
   }
 
-  stepLoss() {
-    this.state.setPhase('loss-per-output');
+  stepLossLegacy() {
+    this.state.setPhase('loss');
     const { totalLoss, perOutput } = this.network.computeLoss(this.targets);
     this.state.currentLoss = totalLoss;
     this.state.currentPerOutputLoss = perOutput;
-    this.state.setPhase('loss-total');
-    eventBus.emit('phase:loss-total', { totalLoss, perOutput, network: this.network, state: this.state });
+    eventBus.emit('phase:loss', { totalLoss, perOutput, network: this.network, state: this.state });
   }
 
   stepBackward() {
@@ -177,11 +167,6 @@ export class TrainingController {
   setLearningRate(lr) {
     this.network.learningRate = lr;
     eventBus.emit('param:learningRate', { value: lr });
-  }
-
-  setActivation(name) {
-    this.network.setActivation(name);
-    eventBus.emit('param:activation', { value: name });
   }
 
   setInputs(inputs) {

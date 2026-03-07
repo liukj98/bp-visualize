@@ -1,8 +1,4 @@
-# bp-algorithm-visualization Specification
-
-## Purpose
-TBD - created by archiving change enhance-visualization-detail. Update Purpose after archive.
-## Requirements
+## MODIFIED Requirements
 ### Requirement: Phase Indicator Display
 The phase indicator SHALL display the current sub-step name and progress within the overall training step sequence for a simplified 2-2-1 linear network (no activation functions, no biases).
 
@@ -12,6 +8,7 @@ The phase indicator SHALL display the current sub-step name and progress within 
 - **AND** a step counter SHALL display current position (e.g., "步骤 2/6")
 - **AND** all sub-steps SHALL reflect the simplified linear network without Sigmoid activation or bias terms
 
+## ADDED Requirements
 ### Requirement: Simplified Network Rendering
 The network visualization SHALL render a 2-2-1 architecture with 5 nodes (x₁, x₂, h₁, h₂, y) and 6 weighted connections (w₁~w₆), without bias nodes or activation function indicators.
 
@@ -31,4 +28,3 @@ The network visualization SHALL render a 2-2-1 architecture with 5 nodes (x₁, 
 - **WHEN** the loss computation step is active
 - **THEN** the loss SHALL be displayed as: Loss = ½(y - target)²
 - **AND** only one output node's loss SHALL be shown (single output y)
-

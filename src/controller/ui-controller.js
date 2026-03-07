@@ -69,11 +69,6 @@ export class UIController {
       document.getElementById('speed-value').textContent = speed + 'ms';
     });
 
-    // Activation function
-    document.getElementById('activation-select').addEventListener('change', (e) => {
-      this.tc.setActivation(e.target.value);
-    });
-
     // Tab switching
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -130,6 +125,11 @@ export class UIController {
   bindBusEvents() {
     eventBus.on('reset', () => {
       this.isAnimating = false;
+      // Reset learning rate slider and display
+      const lrSlider = document.getElementById('lr-slider');
+      const lrValue = document.getElementById('lr-value');
+      if (lrSlider) lrSlider.value = this.tc.network.learningRate;
+      if (lrValue) lrValue.textContent = this.tc.network.learningRate.toFixed(2);
       this.initialRender();
     });
 
@@ -192,29 +192,20 @@ export class UIController {
         break;
 
       case 'forward-output':
-        // Loss per output with animation
+        // Loss computation with animation
         this.isAnimating = true;
-        this.tc.stepLossPerOutput();
+        this.tc.stepLoss();
         this.updatePhaseIndicator();
         this.animEngine.animateLossFlow(this.tc.network, this.tc.state, animDuration, () => {
           this.isAnimating = false;
           this.renderNetwork();
-          this.formula.renderPhase('loss-per-output', this.tc.network, this.tc.targets);
+          this.formula.renderPhase('loss', this.tc.network, this.tc.targets);
           this.updateInfoPanel();
           this.updatePhaseIndicator();
         });
         break;
 
-      case 'loss-per-output':
-        // Loss total (no animation, just display)
-        this.tc.stepLossTotal();
-        this.renderNetwork();
-        this.formula.renderPhase('loss-total', this.tc.network, this.tc.targets);
-        this.updateInfoPanel();
-        this.updatePhaseIndicator();
-        break;
-
-      case 'loss-total':
+      case 'loss':
         // Backward output with animation
         this.isAnimating = true;
         this.tc.stepBackwardOutput();
@@ -296,7 +287,6 @@ export class UIController {
       <div class="info-row"><span>迭代次数</span><strong>${epoch}</strong></div>
       <div class="info-row"><span>当前损失</span><strong>${loss !== null ? formatNum(loss, 6) : '—'}</strong></div>
       <div class="info-row"><span>学习率</span><strong>${this.tc.network.learningRate}</strong></div>
-      <div class="info-row"><span>激活函数</span><strong>${this.tc.network.activationName}</strong></div>
       <div class="info-row"><span>当前步骤</span><strong>${step > 0 ? `${step} / ${total}` : '—'}</strong></div>
     `;
   }

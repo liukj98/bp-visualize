@@ -1,28 +1,23 @@
-import { activations } from './activations.js';
 import { mse, msePerOutput, mseDerivative } from './loss-functions.js';
 
 export class NeuralNetwork {
   constructor(config = {}) {
-    this.layers = config.layers || [2, 2, 2];
-    this.learningRate = config.learningRate || 0.5;
-    this.activationName = config.activation || 'sigmoid';
-    this.activation = activations[this.activationName];
+    this.layers = config.layers || [2, 2, 1];
+    this.learningRate = config.learningRate || 0.1;
 
     this.weights = [];
-    this.biases = [];
 
     // Per-layer values (filled during forward/backward)
-    this.netValues = [];  // net (pre-activation)
-    this.outValues = [];  // out (post-activation)
+    this.netValues = [];  // net (= out for linear network)
+    this.outValues = [];  // out values per layer
     this.deltas = [];     // error signals
     this.gradients = [];  // ∂E/∂w for each weight
 
-    this.initWeights(config.initialWeights, config.initialBiases);
+    this.initWeights(config.initialWeights);
   }
 
-  initWeights(initialWeights, initialBiases) {
+  initWeights(initialWeights) {
     this.weights = [];
-    this.biases = [];
 
     for (let l = 0; l < this.layers.length - 1; l++) {
       const rows = this.layers[l];
@@ -41,16 +36,6 @@ export class NeuralNetwork {
         w.push(row);
       }
       this.weights.push(w);
-
-      const b = [];
-      for (let j = 0; j < cols; j++) {
-        if (initialBiases && initialBiases[l] !== undefined) {
-          b.push(typeof initialBiases[l] === 'number' ? initialBiases[l] : initialBiases[l][j]);
-        } else {
-          b.push(Math.random() * 0.6 - 0.3);
-        }
-      }
-      this.biases.push(b);
     }
   }
 
@@ -66,12 +51,12 @@ export class NeuralNetwork {
       const numNeurons = this.layers[l + 1];
 
       for (let j = 0; j < numNeurons; j++) {
-        let net = this.biases[l][j];
+        let net = 0;
         for (let i = 0; i < currentInput.length; i++) {
           net += currentInput[i] * this.weights[l][i][j];
         }
         nets.push(net);
-        outs.push(this.activation.fn(net));
+        outs.push(net); // linear: out = net
       }
 
       this.netValues.push(nets);
@@ -91,12 +76,12 @@ export class NeuralNetwork {
     const outs = [];
     const numNeurons = this.layers[1];
     for (let j = 0; j < numNeurons; j++) {
-      let net = this.biases[0][j];
+      let net = 0;
       for (let i = 0; i < inputs.length; i++) {
         net += inputs[i] * this.weights[0][i][j];
       }
       nets.push(net);
-      outs.push(this.activation.fn(net));
+      outs.push(net); // linear: out = net
     }
     this.netValues.push(nets);
     this.outValues.push(outs);
@@ -110,19 +95,19 @@ export class NeuralNetwork {
     const outs = [];
     const numNeurons = this.layers[2];
     for (let j = 0; j < numNeurons; j++) {
-      let net = this.biases[1][j];
+      let net = 0;
       for (let i = 0; i < hiddenOut.length; i++) {
         net += hiddenOut[i] * this.weights[1][i][j];
       }
       nets.push(net);
-      outs.push(this.activation.fn(net));
+      outs.push(net); // linear: out = net
     }
     this.netValues.push(nets);
     this.outValues.push(outs);
     return outs;
   }
 
-  /** Backward pass: output layer only */
+  /** Backward pass: output layer only — linear network, no activation derivative */
   backwardOutput(targets) {
     const numLayers = this.weights.length;
     this.deltas = new Array(numLayers);
@@ -132,9 +117,9 @@ export class NeuralNetwork {
     const outputOut = this.outValues[outputIdx];
     const outputDeltas = [];
     for (let j = 0; j < outputOut.length; j++) {
-      const dE_dout = mseDerivative(outputOut[j], targets[j]);
-      const dout_dnet = this.activation.derivative(outputOut[j]);
-      outputDeltas.push(dE_dout * dout_dnet);
+      // dLoss/dy = y - target (linear: dout/dnet = 1)
+      const delta = mseDerivative(outputOut[j], targets[j]);
+      outputDeltas.push(delta);
     }
     this.deltas[numLayers - 1] = outputDeltas;
 
@@ -151,21 +136,21 @@ export class NeuralNetwork {
     return { deltas: outputDeltas, gradients: outputGrads };
   }
 
-  /** Backward pass: hidden layer only (assumes output backward already done) */
+  /** Backward pass: hidden layer only (assumes output backward already done) — linear */
   backwardHidden() {
     const numLayers = this.weights.length;
     for (let l = numLayers - 2; l >= 0; l--) {
-      const layerOut = this.outValues[l + 1];
       const nextDeltas = this.deltas[l + 1];
       const nextWeights = this.weights[l + 1];
       const layerDeltas = [];
+      const layerOut = this.outValues[l + 1];
       for (let j = 0; j < layerOut.length; j++) {
         let errorSum = 0;
         for (let k = 0; k < nextDeltas.length; k++) {
           errorSum += nextDeltas[k] * nextWeights[j][k];
         }
-        const dout_dnet = this.activation.derivative(layerOut[j]);
-        layerDeltas.push(errorSum * dout_dnet);
+        // linear: dout/dnet = 1, so delta = errorSum
+        layerDeltas.push(errorSum);
       }
       this.deltas[l] = layerDeltas;
 
@@ -195,15 +180,14 @@ export class NeuralNetwork {
     this.deltas = new Array(numLayers);
     this.gradients = new Array(numLayers);
 
-    // Output layer deltas
+    // Output layer deltas (linear: no activation derivative)
     const outputIdx = numLayers;
     const outputOut = this.outValues[outputIdx];
     const outputDeltas = [];
 
     for (let j = 0; j < outputOut.length; j++) {
-      const dE_dout = mseDerivative(outputOut[j], targets[j]);
-      const dout_dnet = this.activation.derivative(outputOut[j]);
-      outputDeltas.push(dE_dout * dout_dnet);
+      const delta = mseDerivative(outputOut[j], targets[j]);
+      outputDeltas.push(delta);
     }
     this.deltas[numLayers - 1] = outputDeltas;
 
@@ -219,11 +203,11 @@ export class NeuralNetwork {
     }
     this.gradients[numLayers - 1] = outputGrads;
 
-    // Hidden layers (right to left)
+    // Hidden layers (right to left) — linear
     for (let l = numLayers - 2; l >= 0; l--) {
-      const layerOut = this.outValues[l + 1];
       const nextDeltas = this.deltas[l + 1];
       const nextWeights = this.weights[l + 1];
+      const layerOut = this.outValues[l + 1];
       const layerDeltas = [];
 
       for (let j = 0; j < layerOut.length; j++) {
@@ -231,12 +215,10 @@ export class NeuralNetwork {
         for (let k = 0; k < nextDeltas.length; k++) {
           errorSum += nextDeltas[k] * nextWeights[j][k];
         }
-        const dout_dnet = this.activation.derivative(layerOut[j]);
-        layerDeltas.push(errorSum * dout_dnet);
+        layerDeltas.push(errorSum);
       }
       this.deltas[l] = layerDeltas;
 
-      // Gradients for this layer
       const prevOut = this.outValues[l];
       const layerGrads = [];
       for (let i = 0; i < prevOut.length; i++) {
@@ -261,10 +243,6 @@ export class NeuralNetwork {
           this.weights[l][i][j] -= this.learningRate * this.gradients[l][i][j];
         }
       }
-      // Update biases
-      for (let j = 0; j < this.biases[l].length; j++) {
-        this.biases[l][j] -= this.learningRate * this.deltas[l][j];
-      }
     }
 
     return oldWeights;
@@ -273,35 +251,24 @@ export class NeuralNetwork {
   getState() {
     return {
       weights: this.weights.map(l => l.map(r => r.slice())),
-      biases: this.biases.map(l => l.slice()),
       netValues: this.netValues.map(l => l.slice()),
       outValues: this.outValues.map(l => l.slice()),
       deltas: this.deltas.map ? this.deltas.map(l => l ? l.slice() : []) : [],
       gradients: this.gradients.map ? this.gradients.map(l => l ? l.map(r => r.slice()) : []) : [],
     };
   }
-
-  setActivation(name) {
-    this.activationName = name;
-    this.activation = activations[name];
-  }
 }
 
 export function createDefaultNetwork() {
   return new NeuralNetwork({
-    layers: [2, 2, 2],
-    learningRate: 0.5,
-    activation: 'sigmoid',
+    layers: [2, 2, 1],
+    learningRate: 0.1,
     initialWeights: [
-      [[0.15, 0.25], [0.20, 0.30]],  // input→hidden: w1,w3 / w2,w4
-      [[0.40, 0.50], [0.45, 0.55]],  // hidden→output: w5,w7 / w6,w8
-    ],
-    initialBiases: [
-      [0.35, 0.35],  // hidden layer bias
-      [0.60, 0.60],  // output layer bias
+      [[0.1, 0.2], [0.3, 0.4]],   // input→hidden: w1,w2 / w3,w4
+      [[0.5], [0.6]],              // hidden→output: w5 / w6
     ],
   });
 }
 
-export const DEFAULT_INPUTS = [0.05, 0.10];
-export const DEFAULT_TARGETS = [0.01, 0.99];
+export const DEFAULT_INPUTS = [2, 3];
+export const DEFAULT_TARGETS = [1.8];

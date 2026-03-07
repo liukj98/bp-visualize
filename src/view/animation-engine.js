@@ -16,59 +16,37 @@ export class AnimationEngine {
     this._animateLayerParticles(network, state, 1, '#22d3ee', duration, callback);
   }
 
-  /** Animate loss: output nodes → E_total node */
+  /** Animate loss: highlight output node (no E_total node) */
   animateLossFlow(network, state, duration, callback) {
     const positions = this.renderer.nodePositions;
-    const errorPos = this.renderer.errorNodePos;
-    if (!errorPos) { if (callback) callback(); return; }
-
     const outputLayer = positions[positions.length - 1];
+    // For single output, just do a brief pulse animation (shrink particles around output node)
     const particles = [];
     for (let j = 0; j < outputLayer.length; j++) {
-      particles.push({
-        fromX: outputLayer[j].x + this.renderer.nodeRadius,
-        fromY: outputLayer[j].y,
-        toX: errorPos.x - this.renderer.errorRadius,
-        toY: errorPos.y,
-        x: outputLayer[j].x + this.renderer.nodeRadius,
-        y: outputLayer[j].y,
-        progress: 0,
-        radius: 5,
-        color: '#3b82f6',
-      });
+      // Create particles that converge on the output node from slightly outside
+      for (let a = 0; a < 4; a++) {
+        const angle = (Math.PI * 2 * a) / 4;
+        const dist = 50;
+        particles.push({
+          fromX: outputLayer[j].x + Math.cos(angle) * dist,
+          fromY: outputLayer[j].y + Math.sin(angle) * dist,
+          toX: outputLayer[j].x,
+          toY: outputLayer[j].y,
+          x: outputLayer[j].x + Math.cos(angle) * dist,
+          y: outputLayer[j].y + Math.sin(angle) * dist,
+          progress: 0,
+          radius: 4,
+          color: '#3b82f6',
+        });
+      }
     }
 
     this._runAnimation(particles, network, state, duration, callback);
   }
 
-  /** Animate backward: E_total → output layer gradients */
+  /** Animate backward: output → hidden layer gradients (no E_total) */
   animateBackwardOutput(network, state, duration, callback) {
-    const positions = this.renderer.nodePositions;
-    const errorPos = this.renderer.errorNodePos;
-    if (!errorPos) {
-      // Fallback: just animate layer 1 backward
-      this._animateLayerParticlesReverse(network, state, 1, '#f97316', duration, callback);
-      return;
-    }
-
-    // First animate E_total → output nodes
-    const outputLayer = positions[positions.length - 1];
-    const particles = [];
-    for (let j = 0; j < outputLayer.length; j++) {
-      particles.push({
-        fromX: errorPos.x - this.renderer.errorRadius,
-        fromY: errorPos.y,
-        toX: outputLayer[j].x + this.renderer.nodeRadius,
-        toY: outputLayer[j].y,
-        x: errorPos.x,
-        y: errorPos.y,
-        progress: 0,
-        radius: 5,
-        color: '#f97316',
-      });
-    }
-
-    this._runAnimation(particles, network, state, duration, callback);
+    this._animateLayerParticlesReverse(network, state, 1, '#f97316', duration, callback);
   }
 
   /** Animate backward: output → hidden layer gradients */

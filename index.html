@@ -31,7 +31,7 @@
           <div class="canvas-area">
             <div class="canvas-header">
               <span id="phase-indicator" class="phase-indicator phase-idle">就绪</span>
-              <span class="network-info">网络结构: 2-2-2 | 参考: Matt Mazur BP Tutorial</span>
+              <span class="network-info">网络结构: 2-2-1 | 纯线性网络（无激活函数、无偏置）</span>
             </div>
             <div class="canvas-wrapper" id="canvas-wrapper">
               <canvas id="network-canvas"></canvas>
@@ -59,8 +59,8 @@
               </div>
 
               <div class="slider-group">
-                <label>学习率 η = <span id="lr-value">0.50</span></label>
-                <input type="range" id="lr-slider" min="0.01" max="2.0" step="0.01" value="0.5" />
+                <label>学习率 η = <span id="lr-value">0.10</span></label>
+                <input type="range" id="lr-slider" min="0.01" max="2.0" step="0.01" value="0.1" />
               </div>
 
               <div class="slider-group">
@@ -68,13 +68,7 @@
                 <input type="range" id="speed-slider" min="10" max="2000" step="10" value="500" />
               </div>
 
-              <div class="select-group">
-                <label>激活函数</label>
-                <select id="activation-select">
-                  <option value="sigmoid" selected>Sigmoid</option>
-                  <option value="relu">ReLU</option>
-                </select>
-              </div>
+
             </div>
 
             <!-- Info Panel -->
@@ -83,8 +77,7 @@
               <div id="info-panel">
                 <div class="info-row"><span>迭代次数</span><strong>0</strong></div>
                 <div class="info-row"><span>当前损失</span><strong>—</strong></div>
-                <div class="info-row"><span>学习率</span><strong>0.5</strong></div>
-                <div class="info-row"><span>激活函数</span><strong>sigmoid</strong></div>
+                <div class="info-row"><span>学习率</span><strong>0.1</strong></div>
               </div>
             </div>
 

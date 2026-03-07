@@ -1,10 +1,9 @@
-// Sub-phase order for detailed step-through
+// Sub-phase order for detailed step-through (simplified for 2-2-1 single-output)
 export const SUB_PHASES = [
   'idle',
   'forward-hidden',
   'forward-output',
-  'loss-per-output',
-  'loss-total',
+  'loss',
   'backward-output',
   'backward-hidden',
   'update',
@@ -14,8 +13,7 @@ export const SUB_PHASES = [
 export const MAJOR_PHASES = {
   'forward-hidden': 'forward',
   'forward-output': 'forward',
-  'loss-per-output': 'loss',
-  'loss-total': 'loss',
+  'loss': 'loss',
   'backward-output': 'backward',
   'backward-hidden': 'backward',
   'update': 'update',
@@ -26,8 +24,7 @@ export const PHASE_LABELS = {
   'idle': '就绪',
   'forward-hidden': '前向传播 — 隐藏层计算',
   'forward-output': '前向传播 — 输出层计算',
-  'loss-per-output': '损失计算 — 各输出误差',
-  'loss-total': '损失计算 — 总误差',
+  'loss': '损失计算',
   'backward-output': '反向传播 — 输出层梯度',
   'backward-hidden': '反向传播 — 隐藏层梯度',
   'update': '权重更新',

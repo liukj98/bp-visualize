@@ -1,8 +1,4 @@
-# bp-algorithm-education Specification
-
-## Purpose
-TBD - created by archiving change enhance-visualization-detail. Update Purpose after archive.
-## Requirements
+## MODIFIED Requirements
 ### Requirement: Dynamic Formula Display
 The formula display panel SHALL render phase-specific mathematical formulas synchronized with each training sub-step for a simplified 2-2-1 linear network (no activation functions, no biases), showing detailed intermediate computation terms.
 
@@ -49,6 +45,7 @@ The education page SHALL provide a fixed sidebar navigation on the left side, li
 - **THEN** the navigation item corresponding to the currently visible section SHALL be visually highlighted
 - **AND** the highlight SHALL update automatically as the user scrolls
 
+## ADDED Requirements
 ### Requirement: Simplified BP Algorithm Education Content
 The education page SHALL present a step-by-step walkthrough of the BP algorithm using a simplified 2-2-1 linear network (no activation functions, no biases), with concrete numerical examples.
 
@@ -67,4 +64,3 @@ The education page SHALL present a step-by-step walkthrough of the BP algorithm 
 - **WHEN** the backpropagation section is displayed
 - **THEN** it SHALL demonstrate the chain rule applied to each weight without Sigmoid derivatives
 - **AND** it SHALL show ∂Loss/∂wᵢ for all 6 weights with numerical values
-
