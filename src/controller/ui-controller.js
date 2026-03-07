@@ -92,6 +92,39 @@ export class UIController {
       this.renderNetwork();
       this.chart.render(this.tc.state.lossHistory);
     });
+
+    // Formula zoom modal
+    const formulaPanel = document.getElementById('formula-panel');
+    const formulaModal = document.getElementById('formula-modal');
+    const formulaModalBody = document.getElementById('formula-modal-body');
+    const formulaModalClose = document.getElementById('formula-modal-close');
+
+    if (formulaPanel && formulaModal) {
+      formulaPanel.addEventListener('click', () => {
+        const container = document.getElementById('formula-container');
+        if (container) {
+          formulaModalBody.innerHTML = container.innerHTML;
+        }
+        formulaModal.style.display = 'flex';
+      });
+
+      formulaModalClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        formulaModal.style.display = 'none';
+      });
+
+      formulaModal.addEventListener('click', (e) => {
+        if (e.target === formulaModal) {
+          formulaModal.style.display = 'none';
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && formulaModal.style.display === 'flex') {
+          formulaModal.style.display = 'none';
+        }
+      });
+    }
   }
 
   bindBusEvents() {

@@ -98,6 +98,7 @@ body {
 .tab-content {
   display: none;
   height: 100%;
+  overflow-y: auto;
 }
 
 .tab-content.active {
@@ -340,8 +341,130 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* Formula Panel */
 .formula-panel {
-  flex: 1;
   overflow-y: auto;
+  cursor: pointer;
+}
+
+.formula-panel:hover {
+  outline: 1px solid rgba(96,165,250,0.3);
+  outline-offset: -1px;
+}
+
+.formula-zoom-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-left: 8px;
+}
+
+/* Formula Zoom Modal */
+.formula-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.formula-modal-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  width: 85vw;
+  max-width: 900px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+}
+
+.formula-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.formula-modal-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+}
+
+.formula-modal-close {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.formula-modal-close:hover {
+  background: rgba(239,68,68,0.15);
+  color: #ef4444;
+  border-color: rgba(239,68,68,0.3);
+}
+
+.formula-modal-body {
+  padding: 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.formula-modal-body .formula-section h3 {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.formula-modal-body .formula-hint {
+  font-size: 16px;
+  line-height: 1.8;
+  margin-bottom: 20px;
+}
+
+.formula-modal-body .formula-item {
+  margin-bottom: 16px;
+  line-height: 1.8;
+}
+
+.formula-modal-body .formula-label {
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.formula-modal-body .formula-math {
+  font-size: 18px;
+  padding: 8px 0;
+}
+
+.formula-modal-body .formula-math .katex {
+  font-size: 1.3em;
+}
+
+.formula-modal-body .step-item {
+  font-size: 15px;
+  padding: 10px 14px;
+}
+
+.formula-modal-body .formula-steps {
+  gap: 10px;
 }
 
 .formula-section h3 {
@@ -402,9 +525,7 @@ input[type="range"]::-webkit-slider-thumb {
 .education-page {
   max-width: 800px;
   margin: 0 auto;
-  padding: 32px 24px;
-  overflow-y: auto;
-  height: 100%;
+  padding: 32px 24px 16px;
 }
 
 .education-page h2 {

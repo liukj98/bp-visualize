@@ -14,8 +14,8 @@ export function renderEducationPage(container) {
   container.innerHTML = `
     <h2>BP 反向传播算法详解</h2>
     <p>反向传播算法（Backpropagation）是训练神经网络最核心的算法之一。它通过计算损失函数对各权重的梯度，利用梯度下降法更新权重，使网络输出逐步逼近期望输出。</p>
-    <p>本演示参考经典的 Matt Mazur BP 教程（<a href="https://zhuanlan.zhihu.com/p/40378224" target="_blank" style="color: var(--accent-cyan);">一文搞懂反向传播算法</a>），使用具体数值逐步演示完整流程。</p>
-
+    <p>本演示参考经典的 Matt Mazur BP 教程（<a href="https://mattmazur.com/2015/03/17/a-step-by-step-backpropagation-example/" target="_blank" style="color: var(--accent-cyan);">一文搞懂反向传播算法</a>），使用具体数值逐步演示完整流程。</p>
+    <p>更简内容：<a href="https://zhuanlan.zhihu.com/p/40378224" target="_blank" style="color: var(--accent-cyan);">一文搞懂反向传播算法</a>。</p>
     <h3>网络结构与初始参数</h3>
     <div class="edu-step-card">
       <h4>三层前馈网络（2-2-2）</h4>

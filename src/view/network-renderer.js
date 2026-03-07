@@ -156,7 +156,13 @@ export class NetworkRenderer {
           const offsetY = -Math.cos(angle) * 14;
 
           ctx.save();
-          const weightLabel = formatNum(w, 4);
+          // Compute global weight index: w1, w2, ...
+          let wGlobalIdx = 0;
+          for (let pl = 0; pl < l; pl++) {
+            wGlobalIdx += network.weights[pl].length * network.weights[pl][0].length;
+          }
+          wGlobalIdx += i * toLayer.length + j + 1;
+          const weightLabel = `w${wGlobalIdx}=${formatNum(w, 4)}`;
           const hasGrad = showGradients && network.gradients[l] && network.gradients[l][i];
           const gradLabel = hasGrad ? `∂=${formatNum(network.gradients[l][i][j], 4)}` : '';
 

@@ -59,8 +59,8 @@
               </div>
 
               <div class="slider-group">
-                <label>学习率 η = <span id="lr-value">0.50</span></label>
-                <input type="range" id="lr-slider" min="0.01" max="2.0" step="0.01" value="0.5" />
+                <label>学习率 η = <span id="lr-value">0.10</span></label>
+                <input type="range" id="lr-slider" min="0.01" max="2.0" step="0.01" value="0.1" />
               </div>
 
               <div class="slider-group">
@@ -89,8 +89,8 @@
             </div>
 
             <!-- Formula Display -->
-            <div class="panel formula-panel">
-              <h3>公式推导</h3>
+            <div class="panel formula-panel" id="formula-panel">
+              <h3>公式推导 <span class="formula-zoom-hint">点击放大 🔍</span></h3>
               <div id="formula-container"></div>
             </div>
           </div>
@@ -103,6 +103,17 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Formula Zoom Modal -->
+  <div id="formula-modal" class="formula-modal" style="display:none;">
+    <div class="formula-modal-content">
+      <div class="formula-modal-header">
+        <h2>公式推导</h2>
+        <button class="formula-modal-close" id="formula-modal-close">✕</button>
+      </div>
+      <div class="formula-modal-body" id="formula-modal-body"></div>
+    </div>
   </div>
 
   <script type="module" src="/src/main.js"></script>
