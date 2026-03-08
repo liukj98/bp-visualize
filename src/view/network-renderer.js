@@ -144,7 +144,7 @@ export class NetworkRenderer {
           // Weight label
           const connIdx = i * toLayer.length + j;
           const isStraight = (i === j);
-          const t = isStraight ? 0.5 : (totalConns === 1 ? 0.5 : 0.2 + (connIdx / (totalConns - 1)) * 0.6);
+          const t = isStraight ? 0.5 : (totalConns <= 2 ? 0.5 : 0.35 + (connIdx / (totalConns - 1)) * 0.3);
           const lx = from.x + (to.x - from.x) * t;
           const ly = from.y + (to.y - from.y) * t;
 
