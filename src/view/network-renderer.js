@@ -11,7 +11,17 @@ export class NetworkRenderer {
     this.nodeRadius = 34;
     this.animState = null;
     this.dpr = window.devicePixelRatio || 1;
+
+    // Drag interaction state
+    this.customPositions = new Map();
+    this.dragState = { dragging: false, layerIdx: -1, nodeIdx: -1, offsetX: 0, offsetY: 0 };
+    this.hoveredNode = null;
+    this._lastNetwork = null;
+    this._lastState = null;
+    this._lastAnimState = null;
+
     this.resize();
+    this._bindDragEvents();
   }
 
   resize() {
@@ -62,9 +72,20 @@ export class NetworkRenderer {
       }
       this.nodePositions.push(layerPositions);
     }
+
+    // Override with user-dragged positions
+    for (const [key, pos] of this.customPositions) {
+      const [l, n] = key.split('-').map(Number);
+      if (this.nodePositions[l] && this.nodePositions[l][n]) {
+        this.nodePositions[l][n] = { x: pos.x, y: pos.y };
+      }
+    }
   }
 
   render(network, state, animState) {
+    this._lastNetwork = network;
+    this._lastState = state;
+    this._lastAnimState = animState;
     this.animState = animState;
     this.ctx.clearRect(0, 0, this.width, this.height);
     this.computeLayout(network.layers);
@@ -261,8 +282,20 @@ export class NetworkRenderer {
         ctx.arc(pos.x, pos.y, this.nodeRadius, 0, Math.PI * 2);
         ctx.fillStyle = fillColor;
         ctx.fill();
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = 2.5;
+
+        // Highlight dragged or hovered node
+        const isDragTarget = this.dragState.dragging && this.dragState.layerIdx === l && this.dragState.nodeIdx === n;
+        const isHoverTarget = !this.dragState.dragging && this.hoveredNode && this.hoveredNode.layerIdx === l && this.hoveredNode.nodeIdx === n;
+        if (isDragTarget) {
+          ctx.strokeStyle = '#22d3ee';
+          ctx.lineWidth = 3.5;
+        } else if (isHoverTarget) {
+          ctx.strokeStyle = '#60a5fa';
+          ctx.lineWidth = 3;
+        } else {
+          ctx.strokeStyle = strokeColor;
+          ctx.lineWidth = 2.5;
+        }
         ctx.stroke();
 
         const isDarkBg = this._isColorDark(fillColor);
@@ -371,5 +404,116 @@ export class NetworkRenderer {
     const [r, g, b] = match.map(Number);
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
     return luminance < 0.55;
+  }
+
+  hitTestNode(cx, cy) {
+    for (let l = 0; l < this.nodePositions.length; l++) {
+      for (let n = 0; n < this.nodePositions[l].length; n++) {
+        const pos = this.nodePositions[l][n];
+        const dx = cx - pos.x;
+        const dy = cy - pos.y;
+        if (dx * dx + dy * dy <= this.nodeRadius * this.nodeRadius) {
+          return { layerIdx: l, nodeIdx: n };
+        }
+      }
+    }
+    return null;
+  }
+
+  _rerender() {
+    if (this._lastNetwork && this._lastState) {
+      this.render(this._lastNetwork, this._lastState, this._lastAnimState || { particles: [] });
+    }
+  }
+
+  _bindDragEvents() {
+    const canvas = this.canvas;
+
+    const onDown = (cx, cy) => {
+      const hit = this.hitTestNode(cx, cy);
+      if (hit) {
+        const pos = this.nodePositions[hit.layerIdx][hit.nodeIdx];
+        this.dragState = {
+          dragging: true,
+          layerIdx: hit.layerIdx,
+          nodeIdx: hit.nodeIdx,
+          offsetX: cx - pos.x,
+          offsetY: cy - pos.y,
+        };
+        canvas.style.cursor = 'grabbing';
+        this._rerender();
+      }
+    };
+
+    const onMove = (cx, cy) => {
+      if (this.dragState.dragging) {
+        const key = `${this.dragState.layerIdx}-${this.dragState.nodeIdx}`;
+        this.customPositions.set(key, {
+          x: cx - this.dragState.offsetX,
+          y: cy - this.dragState.offsetY,
+        });
+        this._rerender();
+      } else {
+        // Hover detection
+        const hit = this.hitTestNode(cx, cy);
+        const prev = this.hoveredNode;
+        this.hoveredNode = hit;
+        canvas.style.cursor = hit ? 'grab' : 'default';
+        // Re-render only if hover state changed
+        if ((hit && !prev) || (!hit && prev) ||
+            (hit && prev && (hit.layerIdx !== prev.layerIdx || hit.nodeIdx !== prev.nodeIdx))) {
+          this._rerender();
+        }
+      }
+    };
+
+    const onUp = () => {
+      if (this.dragState.dragging) {
+        this.dragState = { dragging: false, layerIdx: -1, nodeIdx: -1, offsetX: 0, offsetY: 0 };
+        canvas.style.cursor = this.hoveredNode ? 'grab' : 'default';
+        this._rerender();
+      }
+    };
+
+    // Mouse events
+    canvas.addEventListener('mousedown', (e) => {
+      onDown(e.offsetX, e.offsetY);
+    });
+    canvas.addEventListener('mousemove', (e) => {
+      onMove(e.offsetX, e.offsetY);
+    });
+    canvas.addEventListener('mouseup', onUp);
+    canvas.addEventListener('mouseleave', () => {
+      onUp();
+      this.hoveredNode = null;
+      canvas.style.cursor = 'default';
+    });
+
+    // Touch events
+    const touchCoords = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0] || e.changedTouches[0];
+      return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+    };
+    canvas.addEventListener('touchstart', (e) => {
+      const { x, y } = touchCoords(e);
+      onDown(x, y);
+      if (this.dragState.dragging) e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => {
+      if (this.dragState.dragging) {
+        e.preventDefault();
+        const { x, y } = touchCoords(e);
+        onMove(x, y);
+      }
+    }, { passive: false });
+    canvas.addEventListener('touchend', onUp);
+  }
+
+  clearCustomPositions() {
+    this.customPositions.clear();
+    this.hoveredNode = null;
+    this.dragState = { dragging: false, layerIdx: -1, nodeIdx: -1, offsetX: 0, offsetY: 0 };
+    this.canvas.style.cursor = 'default';
   }
 }

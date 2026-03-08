@@ -125,6 +125,7 @@ export class UIController {
   bindBusEvents() {
     eventBus.on('reset', () => {
       this.isAnimating = false;
+      this.renderer.clearCustomPositions();
       // Reset learning rate slider and display
       const lrSlider = document.getElementById('lr-slider');
       const lrValue = document.getElementById('lr-value');
