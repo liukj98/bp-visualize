@@ -6,6 +6,7 @@ import { AnimationEngine } from './view/animation-engine.js';
 import { ChartRenderer } from './view/chart-renderer.js';
 import { FormulaDisplay } from './view/formula-display.js';
 import { renderEducationPage } from './pages/education.js';
+import { renderFaqPage } from './pages/faq.js';
 
 // Initialize
 const networkCanvas = document.getElementById('network-canvas');
@@ -22,3 +23,6 @@ const uiController = new UIController(trainingController, renderer, animEngine, 
 
 // Render education page
 renderEducationPage(document.getElementById('education-content'));
+
+// Render FAQ page
+renderFaqPage(document.getElementById('faq-content'));
