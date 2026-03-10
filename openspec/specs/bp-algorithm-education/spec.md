@@ -118,9 +118,43 @@ The education page SHALL include a "简化公式" (Simplified Formulas) section 
   - E = ½(y − target)²
 - **AND** the formula SHALL be rendered using KaTeX in display mode
 
+#### Scenario: Partial derivative formulas displayed
+- **WHEN** the "简化公式" section is visible
+- **THEN** it SHALL display basic partial derivatives:
+  - ∂h₁/∂w₁ = x₁
+  - ∂y/∂w₅ = h₁
+  - ∂E/∂y = y − target
+- **AND** all formulas SHALL be rendered using KaTeX in display mode
+
+#### Scenario: Chain rule expansion formulas displayed
+- **WHEN** the "简化公式" section is visible
+- **THEN** it SHALL display the chain rule expansion for an output layer weight:
+  - ∂E/∂w₅ = (∂E/∂y) · (∂y/∂w₅) = (y − target) · h₁
+- **AND** it SHALL display the chain rule expansion for a hidden layer weight:
+  - ∂E/∂w₁ = (∂E/∂y) · (∂y/∂h₁) · (∂h₁/∂w₁) = (y − target) · w₅ · x₁
+- **AND** all formulas SHALL be rendered using KaTeX in display mode
+
 #### Scenario: Gradient descent update formula displayed
 - **WHEN** the "简化公式" section is visible
 - **THEN** it SHALL display the gradient descent weight update formula:
   - w_new = w_old − η × ∂E/∂w
 - **AND** the formula SHALL be rendered using KaTeX in display mode
+
+### Requirement: Training Convergence Comparison Section
+The education page SHALL include a "训练收敛对比" (Training Convergence Comparison) section between "步骤五：权重更新" and "关键概念", showing how the network progressively improves across multiple training epochs with a concrete numerical comparison table.
+
+#### Scenario: Section placement and visibility
+- **WHEN** the education page is rendered
+- **THEN** a section titled "训练收敛对比" with id `sec-convergence` SHALL appear between the "步骤五：权重更新" section and the "关键概念" section
+- **AND** it SHALL be included in the sidebar navigation
+
+#### Scenario: Convergence comparison table displayed
+- **WHEN** the "训练收敛对比" section is visible
+- **THEN** it SHALL display a comparison table with at least three training milestones (e.g., epoch 1, epoch 10, epoch 100)
+- **AND** each row SHALL show the epoch number, network output y, loss value, and all 6 weight values
+- **AND** the data SHALL be consistent with the actual computation results of the 2-2-1 linear network using the documented initial parameters and learning rate
+
+#### Scenario: Convergence summary explanation
+- **WHEN** the "训练收敛对比" section is visible
+- **THEN** it SHALL include a summary paragraph explaining that loss decreases with each iteration and the network output converges toward the target value
 

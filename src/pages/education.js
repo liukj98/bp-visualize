@@ -52,6 +52,17 @@ export function renderEducationPage(container) {
       <h4>损失函数</h4>
       <div class="edu-formula">${renderFormula('E = \\frac{1}{2}(y - \\text{target})^2')}</div>
 
+      <h4>偏导公式</h4>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial h_1}{\\partial w_1} = x_1')}</div>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial y}{\\partial w_5} = h_1')}</div>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial y} = y - \\text{target}')}</div>
+
+      <h4>链式法则（反向传播核心）</h4>
+      <p>输出层权重 — 两层链式展开：</p>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial w_5} = \\frac{\\partial E}{\\partial y} \\cdot \\frac{\\partial y}{\\partial w_5} = (y - \\text{target}) \\cdot h_1')}</div>
+      <p>隐藏层权重 — 三层链式展开（这就是"反向传播"）：</p>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial w_1} = \\frac{\\partial E}{\\partial y} \\cdot \\frac{\\partial y}{\\partial h_1} \\cdot \\frac{\\partial h_1}{\\partial w_1} = (y - \\text{target}) \\cdot w_5 \\cdot x_1')}</div>
+
       <h4>梯度下降公式</h4>
       <div class="edu-formula">${renderFormula('w_{\\text{new}} = w_{\\text{old}} - \\eta \\times \\frac{\\partial E}{\\partial w}')}</div>
     </div>
@@ -142,6 +153,71 @@ export function renderEducationPage(container) {
       <div class="edu-formula">${renderFormula("w_6' = 1 - 0.1 \\times 3.99 = 0.601")}</div>
 
       <p>更新后重新前向传播，误差将从 <strong>0.55125</strong> 下降。经过多次迭代，网络输出会逐渐逼近目标值 4。</p>
+    </div>
+
+    <h3 id="sec-convergence">训练收敛对比</h3>
+    <div class="edu-step-card">
+      <h4>多轮训练效果</h4>
+      <p>上面完整推导了第 1 轮训练过程。下面展示经过多轮迭代后，网络是如何逐步收敛的：</p>
+      <table class="edu-data-table">
+        <tr>
+          <th>轮次</th>
+          <th>输出 ${inlineMath('y')}</th>
+          <th>损失 ${inlineMath('Loss')}</th>
+          <th>${inlineMath('w_1')}</th>
+          <th>${inlineMath('w_2')}</th>
+          <th>${inlineMath('w_3')}</th>
+          <th>${inlineMath('w_4')}</th>
+          <th>${inlineMath('w_5')}</th>
+          <th>${inlineMath('w_6')}</th>
+        </tr>
+        <tr>
+          <td>初始</td>
+          <td>${inlineMath('5.05')}</td>
+          <td>${inlineMath('0.5513')}</td>
+          <td>${inlineMath('0.50')}</td>
+          <td>${inlineMath('2.30')}</td>
+          <td>${inlineMath('1.50')}</td>
+          <td>${inlineMath('3.00')}</td>
+          <td>${inlineMath('1.00')}</td>
+          <td>${inlineMath('1.00')}</td>
+        </tr>
+        <tr>
+          <td>第 1 轮</td>
+          <td>${inlineMath('3.1768')}</td>
+          <td>${inlineMath('0.3388')}</td>
+          <td>${inlineMath('0.3950')}</td>
+          <td>${inlineMath('2.1950')}</td>
+          <td>${inlineMath('1.4475')}</td>
+          <td>${inlineMath('2.9475')}</td>
+          <td>${inlineMath('0.8688')}</td>
+          <td>${inlineMath('0.6010')}</td>
+        </tr>
+        <tr>
+          <td>第 10 轮</td>
+          <td>${inlineMath('4.0257')}</td>
+          <td>${inlineMath('0.000330')}</td>
+          <td>${inlineMath('0.4372')}</td>
+          <td>${inlineMath('2.2108')}</td>
+          <td>${inlineMath('1.4686')}</td>
+          <td>${inlineMath('2.9554')}</td>
+          <td>${inlineMath('0.9248')}</td>
+          <td>${inlineMath('0.7977')}</td>
+        </tr>
+        <tr>
+          <td>第 100 轮</td>
+          <td>${inlineMath('\\approx 4.0000')}</td>
+          <td>${inlineMath('\\approx 0')}</td>
+          <td>${inlineMath('0.4358')}</td>
+          <td>${inlineMath('2.2096')}</td>
+          <td>${inlineMath('1.4679')}</td>
+          <td>${inlineMath('2.9548')}</td>
+          <td>${inlineMath('0.9230')}</td>
+          <td>${inlineMath('0.7921')}</td>
+        </tr>
+      </table>
+      <p>可以观察到：<strong>每轮迭代后损失持续下降，网络输出逐步逼近目标值 4</strong>。仅经过 10 轮训练，损失就从 0.5513 下降到 0.00033（降低了 99.9%）；100 轮后损失几乎为零，网络已完全收敛。</p>
+      <p>这正是梯度下降的威力 — 每次沿梯度反方向微调权重，误差就会不断减小，最终收敛到最优解。你可以在<strong>「可视化」</strong>页面亲自体验这一过程。</p>
     </div>
 
     <h3 id="sec-concepts">关键概念</h3>
