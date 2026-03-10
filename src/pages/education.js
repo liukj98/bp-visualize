@@ -42,6 +42,20 @@ export function renderEducationPage(container) {
       <p><em>权重含义：${inlineMath('w_1')} 连接 ${inlineMath('x_1 \\to h_1')}，${inlineMath('w_2')} 连接 ${inlineMath('x_1 \\to h_2')}，${inlineMath('w_3')} 连接 ${inlineMath('x_2 \\to h_1')}，${inlineMath('w_4')} 连接 ${inlineMath('x_2 \\to h_2')}，${inlineMath('w_5')} 连接 ${inlineMath('h_1 \\to y')}，${inlineMath('w_6')} 连接 ${inlineMath('h_2 \\to y')}</em></p>
     </div>
 
+    <h3 id="sec-formulas">简化公式</h3>
+    <div class="edu-step-card">
+      <h4>前向传播公式</h4>
+      <div class="edu-formula">${renderFormula('h_1 = w_1 \\cdot x_1 + w_3 \\cdot x_2')}</div>
+      <div class="edu-formula">${renderFormula('h_2 = w_2 \\cdot x_1 + w_4 \\cdot x_2')}</div>
+      <div class="edu-formula">${renderFormula('y = w_5 \\cdot h_1 + w_6 \\cdot h_2')}</div>
+
+      <h4>损失函数</h4>
+      <div class="edu-formula">${renderFormula('E = \\frac{1}{2}(y - \\text{target})^2')}</div>
+
+      <h4>梯度下降公式</h4>
+      <div class="edu-formula">${renderFormula('w_{\\text{new}} = w_{\\text{old}} - \\eta \\times \\frac{\\partial E}{\\partial w}')}</div>
+    </div>
+
     <h3 id="sec-forward">步骤一：前向传播</h3>
     <div class="edu-step-card">
       <h4>隐藏层计算（纯线性）</h4>
