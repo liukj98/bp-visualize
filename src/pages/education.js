@@ -52,17 +52,6 @@ export function renderEducationPage(container) {
       <h4>损失函数</h4>
       <div class="edu-formula">${renderFormula('E = \\frac{1}{2}(y - \\text{target})^2')}</div>
 
-      <h4>偏导公式</h4>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial h_1}{\\partial w_1} = x_1')}</div>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial y}{\\partial w_5} = h_1')}</div>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial y} = y - \\text{target}')}</div>
-
-      <h4>链式法则（反向传播核心）</h4>
-      <p>输出层权重 — 两层链式展开：</p>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial w_5} = \\frac{\\partial E}{\\partial y} \\cdot \\frac{\\partial y}{\\partial w_5} = (y - \\text{target}) \\cdot h_1')}</div>
-      <p>隐藏层权重 — 三层链式展开（这就是"反向传播"）：</p>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial w_1} = \\frac{\\partial E}{\\partial y} \\cdot \\frac{\\partial y}{\\partial h_1} \\cdot \\frac{\\partial h_1}{\\partial w_1} = (y - \\text{target}) \\cdot w_5 \\cdot x_1')}</div>
-
       <h4>梯度下降公式</h4>
       <div class="edu-formula">${renderFormula('w_{\\text{new}} = w_{\\text{old}} - \\eta \\times \\frac{\\partial E}{\\partial w}')}</div>
     </div>
