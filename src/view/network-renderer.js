@@ -213,7 +213,7 @@ export class NetworkRenderer {
 
     ctx.save();
     // Draw loss box
-    const lossText = `Loss = ${hasLoss ? formatNum(state.currentLoss, 6) : '—'}`;
+    const lossText = `E = ${hasLoss ? formatNum(state.currentLoss, 6) : '—'}`;
     ctx.font = 'bold 11px "JetBrains Mono", monospace';
     const textWidth = ctx.measureText(lossText).width;
     const boxPad = 10;

@@ -84,7 +84,7 @@ export function renderEducationPage(container) {
     <h3 id="sec-loss">步骤二：损失计算</h3>
     <div class="edu-step-card">
       <h4>平方误差损失函数</h4>
-      <div class="edu-formula">${renderFormula('Loss = \\frac{1}{2}(y - target)^2')}</div>
+      <div class="edu-formula">${renderFormula('E = \\frac{1}{2}(y - target)^2')}</div>
       <div class="edu-formula">${renderFormula('= \\frac{1}{2}(5.05 - 4)^2')}</div>
       <div class="edu-formula">${renderFormula('= \\frac{1}{2} \\times 1.05^2 = \\frac{1}{2} \\times 1.1025 = 0.55125')}</div>
       <p>当前误差为 0.55125，我们的目标是通过调整权重让它尽可能接近 0。</p>
@@ -94,42 +94,42 @@ export function renderEducationPage(container) {
     <div class="edu-step-card">
       <h4>链式法则求解输出层权重梯度</h4>
       <p>对于线性网络，链式法则更加简洁（没有激活函数的导数项）：</p>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial Loss}{\\partial w_k} = \\frac{\\partial Loss}{\\partial y} \\cdot \\frac{\\partial y}{\\partial w_k}')}</div>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial w_k} = \\frac{\\partial E}{\\partial y} \\cdot \\frac{\\partial y}{\\partial w_k}')}</div>
 
       <p><strong>第一项</strong>：损失对输出的偏导</p>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial Loss}{\\partial y} = y - target = 5.05 - 4 = 1.05')}</div>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial y} = y - target = 5.05 - 4 = 1.05')}</div>
 
-      <p><strong>求 ∂Loss/∂w₅</strong>：</p>
+      <p><strong>求 ∂E/∂w₅</strong>：</p>
       <div class="edu-formula">${renderFormula('\\frac{\\partial y}{\\partial w_5} = h_1 = 1.25')}</div>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial Loss}{\\partial w_5} = 1.05 \\times 1.25 = 1.3125')}</div>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial w_5} = 1.05 \\times 1.25 = 1.3125')}</div>
 
-      <p><strong>求 ∂Loss/∂w₆</strong>：</p>
+      <p><strong>求 ∂E/∂w₆</strong>：</p>
       <div class="edu-formula">${renderFormula('\\frac{\\partial y}{\\partial w_6} = h_2 = 3.8')}</div>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial Loss}{\\partial w_6} = 1.05 \\times 3.8 = 3.99')}</div>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial w_6} = 1.05 \\times 3.8 = 3.99')}</div>
     </div>
 
     <h3 id="sec-bp-hidden">步骤四：反向传播（隐藏层）</h3>
     <div class="edu-step-card">
       <h4>隐藏层权重的梯度 — 链式法则继续传递</h4>
       <p>误差信号从输出层反向传播到隐藏层：</p>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial Loss}{\\partial w_{ij}} = \\frac{\\partial Loss}{\\partial y} \\cdot \\frac{\\partial y}{\\partial h_j} \\cdot \\frac{\\partial h_j}{\\partial w_{ij}}')}</div>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial w_{ij}} = \\frac{\\partial E}{\\partial y} \\cdot \\frac{\\partial y}{\\partial h_j} \\cdot \\frac{\\partial h_j}{\\partial w_{ij}}')}</div>
 
-      <p><strong>计算 ∂Loss/∂h₁ 和 ∂Loss/∂h₂</strong>：</p>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial Loss}{\\partial h_1} = \\frac{\\partial Loss}{\\partial y} \\times w_5 = 1.05 \\times 1 = 1.05')}</div>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial Loss}{\\partial h_2} = \\frac{\\partial Loss}{\\partial y} \\times w_6 = 1.05 \\times 1 = 1.05')}</div>
+      <p><strong>计算 ∂E/∂h₁ 和 ∂E/∂h₂</strong>：</p>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial h_1} = \\frac{\\partial E}{\\partial y} \\times w_5 = 1.05 \\times 1 = 1.05')}</div>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial h_2} = \\frac{\\partial E}{\\partial y} \\times w_6 = 1.05 \\times 1 = 1.05')}</div>
 
       <p><strong>隐藏层权重梯度</strong>（∂h_j/∂w_ij = x_i）：</p>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial Loss}{\\partial w_1} = \\frac{\\partial Loss}{\\partial h_1} \\times x_1 = 1.05 \\times 1 = 1.05')}</div>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial Loss}{\\partial w_2} = \\frac{\\partial Loss}{\\partial h_2} \\times x_1 = 1.05 \\times 1 = 1.05')}</div>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial Loss}{\\partial w_3} = \\frac{\\partial Loss}{\\partial h_1} \\times x_2 = 1.05 \\times 0.5 = 0.525')}</div>
-      <div class="edu-formula">${renderFormula('\\frac{\\partial Loss}{\\partial w_4} = \\frac{\\partial Loss}{\\partial h_2} \\times x_2 = 1.05 \\times 0.5 = 0.525')}</div>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial w_1} = \\frac{\\partial E}{\\partial h_1} \\times x_1 = 1.05 \\times 1 = 1.05')}</div>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial w_2} = \\frac{\\partial E}{\\partial h_2} \\times x_1 = 1.05 \\times 1 = 1.05')}</div>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial w_3} = \\frac{\\partial E}{\\partial h_1} \\times x_2 = 1.05 \\times 0.5 = 0.525')}</div>
+      <div class="edu-formula">${renderFormula('\\frac{\\partial E}{\\partial w_4} = \\frac{\\partial E}{\\partial h_2} \\times x_2 = 1.05 \\times 0.5 = 0.525')}</div>
     </div>
 
     <h3 id="sec-update">步骤五：权重更新</h3>
     <div class="edu-step-card">
       <h4>梯度下降</h4>
       <p>使用计算出的梯度更新每个权重：</p>
-      <div class="edu-formula">${renderFormula('w_{new} = w_{old} - \\eta \\cdot \\frac{\\partial Loss}{\\partial w}')}</div>
+      <div class="edu-formula">${renderFormula('w_{new} = w_{old} - \\eta \\cdot \\frac{\\partial E}{\\partial w}')}</div>
 
       <p><strong>隐藏层权重更新</strong>（η = 0.1）：</p>
       <div class="edu-formula">${renderFormula("w_1' = 0.5 - 0.1 \\times 1.05 = 0.395")}</div>
@@ -152,7 +152,7 @@ export function renderEducationPage(container) {
         <tr>
           <th>轮次</th>
           <th>输出 ${inlineMath('y')}</th>
-          <th>损失 ${inlineMath('Loss')}</th>
+          <th>损失 ${inlineMath('E')}</th>
           <th>${inlineMath('w_1')}</th>
           <th>${inlineMath('w_2')}</th>
           <th>${inlineMath('w_3')}</th>
@@ -225,7 +225,7 @@ export function renderEducationPage(container) {
 
     <div class="edu-step-card">
       <h4>梯度下降</h4>
-      <p>梯度下降是沿着损失函数下降最快的方向更新参数。更新公式 ${inlineMath('w_{new} = w_{old} - \\eta \\times \\frac{\\partial Loss}{\\partial w}')} 保证了每一步更新都在减小误差（当学习率 ${inlineMath('\\eta')} 足够小时）。</p>
+      <p>梯度下降是沿着损失函数下降最快的方向更新参数。更新公式 ${inlineMath('w_{new} = w_{old} - \\eta \\times \\frac{\\partial E}{\\partial w}')} 保证了每一步更新都在减小误差（当学习率 ${inlineMath('\\eta')} 足够小时）。</p>
     </div>
   `;
 

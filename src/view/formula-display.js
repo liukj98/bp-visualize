@@ -115,7 +115,7 @@ export class FormulaDisplay {
     section.className = 'formula-section';
     section.innerHTML = '<h3>③ 损失计算</h3>';
 
-    this.addFormula(section, '平方误差损失函数：', 'Loss = \\frac{1}{2}(y - target)^2');
+    this.addFormula(section, '平方误差损失函数：', 'E = \\frac{1}{2}(y - target)^2');
 
     const output = network.outValues[network.outValues.length - 1];
     if (output && targets) {
@@ -124,7 +124,7 @@ export class FormulaDisplay {
       const diff = y - t;
       const loss = 0.5 * diff * diff;
       this.addFormula(section, '代入数值：',
-        `Loss = \\frac{1}{2}(${formatNum(y, 6)} - ${formatNum(t, 2)})^2`);
+        `E = \\frac{1}{2}(${formatNum(y, 6)} - ${formatNum(t, 2)})^2`);
       this.addFormula(section, '',
         `= \\frac{1}{2} \\times (${formatNum(diff, 6)})^2 = \\frac{1}{2} \\times ${formatNum(diff * diff, 6)} = ${formatNum(loss, 6)}`);
     }
@@ -138,10 +138,10 @@ export class FormulaDisplay {
     section.innerHTML = '<h3>④ 反向传播 — 输出层梯度</h3>';
 
     this.addFormula(section, '链式法则（线性网络，无激活函数）：',
-      '\\frac{\\partial Loss}{\\partial w_k} = \\frac{\\partial Loss}{\\partial y} \\cdot \\frac{\\partial y}{\\partial w_k}');
+      '\\frac{\\partial E}{\\partial w_k} = \\frac{\\partial E}{\\partial y} \\cdot \\frac{\\partial y}{\\partial w_k}');
 
     this.addFormula(section, '损失对输出的偏导：',
-      '\\frac{\\partial Loss}{\\partial y} = y - target');
+      '\\frac{\\partial E}{\\partial y} = y - target');
 
     const output = network.outValues[network.outValues.length - 1];
     if (output && targets && network.deltas.length > 0) {
@@ -152,19 +152,19 @@ export class FormulaDisplay {
         const dL_dy = y - t;
 
         this.addFormula(section, '代入数值：',
-          `\\frac{\\partial Loss}{\\partial y} = ${formatNum(y, 6)} - ${formatNum(t, 2)} = ${formatNum(dL_dy, 6)}`);
+          `\\frac{\\partial E}{\\partial y} = ${formatNum(y, 6)} - ${formatNum(t, 2)} = ${formatNum(dL_dy, 6)}`);
 
         // Show weight gradients for output layer
         const hiddenOut = network.outValues[network.outValues.length - 2];
         const lastGrads = network.gradients[network.gradients.length - 1];
         if (hiddenOut && lastGrads) {
           this.addFormula(section, '输出层权重梯度：',
-            '\\frac{\\partial Loss}{\\partial w_k} = \\frac{\\partial Loss}{\\partial y} \\times h_i');
+            '\\frac{\\partial E}{\\partial w_k} = \\frac{\\partial E}{\\partial y} \\times h_i');
 
           for (let i = 0; i < hiddenOut.length; i++) {
             const wIdx = i + 5; // w5, w6
             this.addFormula(section, '',
-              `\\frac{\\partial Loss}{\\partial w_${wIdx}} = ${formatNum(dL_dy, 6)} \\times ${formatNum(hiddenOut[i], 6)} = ${formatNum(lastGrads[i][0], 6)}`);
+              `\\frac{\\partial E}{\\partial w_${wIdx}} = ${formatNum(dL_dy, 6)} \\times ${formatNum(hiddenOut[i], 6)} = ${formatNum(lastGrads[i][0], 6)}`);
           }
         }
       }
@@ -179,7 +179,7 @@ export class FormulaDisplay {
     section.innerHTML = '<h3>⑤ 反向传播 — 隐藏层梯度</h3>';
 
     this.addFormula(section, '隐藏层链式法则（线性）：',
-      '\\frac{\\partial Loss}{\\partial w_{ij}} = \\frac{\\partial Loss}{\\partial y} \\cdot \\frac{\\partial y}{\\partial h_j} \\cdot \\frac{\\partial h_j}{\\partial w_{ij}}');
+      '\\frac{\\partial E}{\\partial w_{ij}} = \\frac{\\partial E}{\\partial y} \\cdot \\frac{\\partial y}{\\partial h_j} \\cdot \\frac{\\partial h_j}{\\partial w_{ij}}');
 
     if (network.deltas[0] && network.deltas[1]) {
       const outputDeltas = network.deltas[1]; // dL/dy
@@ -191,8 +191,8 @@ export class FormulaDisplay {
         const dy_dhj = w[j][0];
         const dL_dhj = dL_dy * dy_dhj;
 
-        this.addFormula(section, `计算 ∂Loss/∂h${j + 1}：`,
-          `\\frac{\\partial Loss}{\\partial h_${j + 1}} = \\frac{\\partial Loss}{\\partial y} \\times w_${j + 5}`);
+        this.addFormula(section, `计算 ∂E/∂h${j + 1}：`,
+          `\\frac{\\partial E}{\\partial h_${j + 1}} = \\frac{\\partial E}{\\partial y} \\times w_${j + 5}`);
         this.addFormula(section, '',
           `= ${formatNum(dL_dy, 6)} \\times ${formatNum(dy_dhj, 4)} = ${formatNum(dL_dhj, 6)}`);
       }
@@ -200,14 +200,14 @@ export class FormulaDisplay {
       // Show hidden layer weight gradients
       if (network.gradients[0]) {
         this.addFormula(section, '隐藏层权重梯度：',
-          '\\frac{\\partial Loss}{\\partial w_{ij}} = \\frac{\\partial Loss}{\\partial h_j} \\times x_i');
+          '\\frac{\\partial E}{\\partial w_{ij}} = \\frac{\\partial E}{\\partial h_j} \\times x_i');
 
         const inputs = network.outValues[0];
         for (let i = 0; i < inputs.length; i++) {
           for (let j = 0; j < network.deltas[0].length; j++) {
             const wIdx = i * network.deltas[0].length + j + 1;
             this.addFormula(section, '',
-              `\\frac{\\partial Loss}{\\partial w_${wIdx}} = ${formatNum(network.deltas[0][j], 6)} \\times ${formatNum(inputs[i], 2)} = ${formatNum(network.gradients[0][i][j], 6)}`);
+              `\\frac{\\partial E}{\\partial w_${wIdx}} = ${formatNum(network.deltas[0][j], 6)} \\times ${formatNum(inputs[i], 2)} = ${formatNum(network.gradients[0][i][j], 6)}`);
           }
         }
       }
@@ -221,7 +221,7 @@ export class FormulaDisplay {
     section.className = 'formula-section';
     section.innerHTML = '<h3>⑥ 权重更新（梯度下降）</h3>';
 
-    this.addFormula(section, '更新公式：', 'w_{new} = w_{old} - \\eta \\cdot \\frac{\\partial Loss}{\\partial w}');
+    this.addFormula(section, '更新公式：', 'w_{new} = w_{old} - \\eta \\cdot \\frac{\\partial E}{\\partial w}');
     this.addFormula(section, '', `\\eta = ${network.learningRate}`);
 
     // Show updates for all weights

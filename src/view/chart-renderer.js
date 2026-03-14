@@ -70,7 +70,7 @@ export class ChartRenderer {
     ctx.textAlign = 'center';
     ctx.translate(14, this.padding.top + plotH / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText('Loss', 0, 0);
+    ctx.fillText('E', 0, 0);
     ctx.restore();
 
     // X-axis label
@@ -139,7 +139,7 @@ export class ChartRenderer {
       ctx.font = 'bold 12px "Inter", sans-serif';
       ctx.fillStyle = '#e2e8f0';
       ctx.textAlign = 'left';
-      ctx.fillText(`Loss: ${formatNum(last.loss, 6)}`, this.padding.left + 5, this.padding.top - 10);
+      ctx.fillText(`E: ${formatNum(last.loss, 6)}`, this.padding.left + 5, this.padding.top - 10);
     }
   }
 }
