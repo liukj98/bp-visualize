@@ -72,9 +72,10 @@ export class UIController {
     // Tab switching
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const tab = e.target.dataset.tab;
+        const target = e.target.closest('.tab-btn');
+        const tab = target.dataset.tab;
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
+        target.classList.add('active');
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.getElementById(`tab-${tab}`).classList.add('active');
       });
